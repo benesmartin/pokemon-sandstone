@@ -90,12 +90,20 @@ public class PlayerMovement : MonoBehaviour
         {
             if (UnityEngine.Random.Range(1, 101) <= 10)
             {
+                
                 Debug.Log("Encountered a wild pokemon");
+                StopMoving();
                 transition.SetActive(true);
                 video.Play();
                 video.loopPointReached += CheckOver;
             }
         }
+    }
+    private void StopMoving()
+    {
+        walkingSpeed = 0f;
+        runningSpeed = 0f;
+        bikingSpeed = 0f;
     }
     void CheckOver(UnityEngine.Video.VideoPlayer vp)
     {
