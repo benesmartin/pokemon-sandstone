@@ -1,0 +1,4 @@
+repository "pokemon-sandstone@martinbenes790@cloud"
+  path "/"
+    br "/main"
+    co "/main"

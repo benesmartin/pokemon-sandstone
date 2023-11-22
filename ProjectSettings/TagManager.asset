@@ -3,7 +3,8 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 2
-  tags: []
+  tags:
+  - House
   layers:
   - Default
   - TransparentFX
@@ -13,8 +14,8 @@ TagManager:
   - UI
   - 
   - 
-  - 
-  - 
+  - Solid Objects
+  - LongGrass
   - 
   - 
   - 
@@ -43,6 +44,12 @@ TagManager:
     locked: 0
   - name: Background
     uniqueID: 1626377233
+    locked: 0
+  - name: Foreground
+    uniqueID: 1473886053
+    locked: 0
+  - name: Buildings
+    uniqueID: 1347577353
     locked: 0
   - name: Character
     uniqueID: 400836021
