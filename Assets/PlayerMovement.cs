@@ -24,10 +24,14 @@ public class PlayerMovement : MonoBehaviour
     float lastVertical = -1f;
     public LayerMask solidObjectsLayer;
     public LayerMask grassLayer;
-
+    public bool isTransitioning = false;
+    private void Start()
+    {
+        LoadCharacterPosition();
+    }
     void Update()
     {
-        if (!isMoving && !PauseMenu.GameIsPaused)
+        if (!isMoving && !PauseMenu.GameIsPaused && !isTransitioning)
         {
             input.x = Input.GetAxisRaw("Horizontal");
             input.y = Input.GetAxisRaw("Vertical");
@@ -92,18 +96,34 @@ public class PlayerMovement : MonoBehaviour
             {
                 
                 Debug.Log("Encountered a wild pokemon");
-                StopMoving();
+                //disable keyboard input
+                lastHorizontal = input.x;
+                lastVertical = input.y;
+                animator.SetFloat("LastHorizontal", lastHorizontal);
+                animator.SetFloat("LastVertical", lastVertical);
+                isTransitioning = true;
+                animator.SetFloat("Speed", 0f);
+                SaveCharacterPosition();
                 transition.SetActive(true);
                 video.Play();
                 video.loopPointReached += CheckOver;
             }
         }
     }
-    private void StopMoving()
+    private void SaveCharacterPosition()
     {
-        walkingSpeed = 0f;
-        runningSpeed = 0f;
-        bikingSpeed = 0f;
+        CharacterValueManager.Instance.posX = transform.position.x;
+        CharacterValueManager.Instance.posY = transform.position.y;
+        CharacterValueManager.Instance.directionHorizontal = lastHorizontal;
+        CharacterValueManager.Instance.directionVertical = lastVertical;
+    }
+    private void LoadCharacterPosition()
+    {
+        transform.position = new Vector3(CharacterValueManager.Instance.posX, CharacterValueManager.Instance.posY, 1);
+        lastHorizontal = CharacterValueManager.Instance.directionHorizontal;
+        lastVertical = CharacterValueManager.Instance.directionVertical;
+        animator.SetFloat("LastHorizontal", lastHorizontal);
+        animator.SetFloat("LastVertical", lastVertical);
     }
     void CheckOver(UnityEngine.Video.VideoPlayer vp)
     {

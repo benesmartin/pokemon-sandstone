@@ -6,11 +6,11 @@ public class ButtonValueManager : MonoBehaviour
     public static ButtonValueManager Instance { get; private set; }
 
     public Dictionary<string, bool> buttonHighlights = new Dictionary<string, bool>
-{
-    { "Text Speed Mid", true },
-    { "Battle Style Shift", true },
-    { "Battle Scene On", true }
-};
+    {
+        { "Text Speed Mid", true },
+        { "Battle Style Shift", true },
+        { "Battle Scene On", true }
+    };
 
     public string selectedTextSpeed = "Mid";
     public bool isBattleSceneOn = true;
