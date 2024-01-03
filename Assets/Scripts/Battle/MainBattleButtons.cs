@@ -1,8 +1,13 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
+using TMPro;
+using UnityEditor.VersionControl;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class MainBattleButtons : MonoBehaviour
 {
@@ -10,6 +15,12 @@ public class MainBattleButtons : MonoBehaviour
     [SerializeField] BattleUnit enemyUnit;
     [SerializeField] GameObject dialogBox;
     [SerializeField] GameObject mainButtons;
+    [SerializeField] GameObject firstPokemonButton;
+    [SerializeField] GameObject pokemonParty;
+    [SerializeField] GameObject[] pokemonPartyButtons;
+    [SerializeField] GameObject pokemonPartyDialogBox;
+    [SerializeField] GameObject cancelButton;
+    [SerializeField] GameObject pokeball;
 
     public bool isInMoves = false;
     public int escapeAttempts = 0;
@@ -47,10 +58,14 @@ public class MainBattleButtons : MonoBehaviour
             ReturnToMenu();
         }
     }
-
-    public void ReturnToMenu()
+    public void HideMainButtons()
     {
-        if (isInMoves)
+        mainButtons.SetActive(false);
+    }
+
+    public void ReturnToMenu(bool isItTrue = false)
+    {
+        if (isInMoves || isItTrue)
         {
             StartCoroutine(ReturnToMenuRoutine());
         }
@@ -58,7 +73,7 @@ public class MainBattleButtons : MonoBehaviour
 
     private IEnumerator ReturnToMenuRoutine()
     {
-        GameObject.Find("Move Buttons").SetActive(false);
+        if (GameObject.Find("Move Buttons")) GameObject.Find("Move Buttons").SetActive(false);
         mainButtons.SetActive(true);
         EventSystem.current.SetSelectedGameObject(GameObject.Find("Battle Button"));
         isInMoves = false;
@@ -76,9 +91,132 @@ public class MainBattleButtons : MonoBehaviour
 
     public void OnPokemonButton()
     {
-        StartCoroutine(PokemonButtonRoutine());
+
+        pokemonParty.SetActive(true);
+        SetPokemonPartyButtons(PokemonParty.Instance.Pokemons);
+        EventSystem.current.SetSelectedGameObject(firstPokemonButton);
+        pokemonPartyDialogBox.GetComponent<BattleDialogBox>().TypeDialog("Choose a Pokemon.");
+    }
+    public void OnCancelButton()
+    {
+        EventSystem.current.SetSelectedGameObject(GameObject.Find("Battle Button"));
+    }
+    public void SetPokemonPartyButtons(List<Pokemon> pokemons)
+    {
+        foreach (var button in pokemonPartyButtons)
+        {
+            button.SetActive(false);
+        }
+
+        List<GameObject> activeButtons = new List<GameObject>();
+        for (int i = 0; i < pokemons.Count; i++)
+        {
+            Pokemon pokemon = pokemons[i];
+            GameObject pokemonButton = pokemonPartyButtons[i];
+            SetPokemonButton(pokemonButton, pokemon);
+            activeButtons.Add(pokemonButton);
+        }
+
+        SetupNavigation(activeButtons);
     }
 
+    private void SetupNavigation(List<GameObject> activeButtons)
+    {
+        if (activeButtons.Count <= 1) return;
+
+        for (int i = 0; i < activeButtons.Count; i++)
+        {
+            Navigation nav = new Navigation();
+            nav.mode = Navigation.Mode.Explicit;
+
+
+            nav.selectOnUp = i >= 2 ? activeButtons[i - 2].GetComponent<Button>() : null;
+
+
+            if (i >= activeButtons.Count - 2)
+                nav.selectOnDown = cancelButton.GetComponent<Button>();
+            else if (i + 2 < activeButtons.Count)
+                nav.selectOnDown = activeButtons[i + 2].GetComponent<Button>();
+
+
+            if (activeButtons.Count % 2 != 0 && i == activeButtons.Count - 2)
+                nav.selectOnDown = activeButtons[i + 1].GetComponent<Button>();
+
+
+            if (i % 2 == 0)
+                nav.selectOnRight = (i + 1 < activeButtons.Count) ? activeButtons[i + 1].GetComponent<Button>() : null;
+            else
+                nav.selectOnLeft = activeButtons[i - 1].GetComponent<Button>();
+
+            activeButtons[i].GetComponent<Button>().navigation = nav;
+        }
+
+
+        Navigation cancelNav = new Navigation();
+        cancelNav.mode = Navigation.Mode.Explicit;
+        cancelNav.selectOnUp = activeButtons[activeButtons.Count - 1].GetComponent<Button>();
+        cancelButton.GetComponent<Button>().navigation = cancelNav;
+    }
+
+
+
+
+    private void SetPokemonButton(GameObject pokemonButton, Pokemon pokemon)
+    {
+
+
+        if (pokemonButton == null) Debug.LogError("pokemonButton is null");
+        pokemonButton.SetActive(true);
+        FindDeepChild(pokemonButton, "Party Sprite").GetComponent<Image>().sprite = pokemon.Base.FrontSprite;
+        FindDeepChild(pokemonButton, "Name").GetComponent<TextMeshProUGUI>().text = pokemon.Base.Name;
+        FindDeepChild(pokemonButton, "Level").GetComponent<TextMeshProUGUI>().text = $"Lv. {pokemon.Level}";
+        FindDeepChild(pokemonButton, "Slider").GetComponent<Slider>().value = pokemon.HP;
+        FindDeepChild(pokemonButton, "Slider").GetComponent<Slider>().maxValue = pokemon.MaxHP;
+        FindDeepChild(pokemonButton, "HP Value").GetComponent<TextMeshProUGUI>().text = $"{pokemon.HP}/{pokemon.MaxHP}";
+        var fillImage = FindDeepChild(pokemonButton, "Fill").GetComponent<Image>();
+        Canvas.ForceUpdateCanvases();
+        UpdateFillColor(pokemon.HP, pokemon.MaxHP, fillImage);
+
+    }
+    GameObject FindDeepChild(GameObject parent, string childName)
+    {
+        foreach (Transform child in parent.transform)
+        {
+            if (child.name == childName)
+                return child.gameObject;
+
+            GameObject found = FindDeepChild(child.gameObject, childName);
+            if (found != null)
+                return found;
+        }
+
+        return null;
+    }
+
+
+    private void UpdateFillColor(int currentHP, int maxHP, Image fillImage)
+    {
+        float hpPercentage = (float)currentHP / maxHP;
+
+        Color highHPColor = HexToColor("#00C304");
+        Color mediumHPColor = Color.yellow;
+        Color lowHPColor = Color.red;
+
+        if (hpPercentage > 0.5f)
+        {
+            fillImage.color = Color.Lerp(mediumHPColor, highHPColor, (hpPercentage - 0.5f) * 2);
+        }
+        else
+        {
+            fillImage.color = Color.Lerp(lowHPColor, mediumHPColor, hpPercentage * 2);
+        }
+    }
+    private Color HexToColor(string hex)
+    {
+        Color color;
+        ColorUtility.TryParseHtmlString(hex, out color);
+        return color;
+    }
     private IEnumerator PokemonButtonRoutine()
     {
         SetDialog("Pokemon is not implemented yet!");
@@ -86,11 +224,30 @@ public class MainBattleButtons : MonoBehaviour
         yield return StartCoroutine(WaitForDialogueBox());
         yield return new WaitForSeconds(1f);
         SetDialog("What will " + playerUnit.Pokemon.Base.Name + " do?");
+        Debug.Log("HP: " + playerUnit.Pokemon.HP + "/" + playerUnit.Pokemon.MaxHP);
     }
 
     public void OnBagButton()
     {
-        StartCoroutine(BagButtonRoutine());
+        StartCoroutine(OnBagRoutine());
+    }
+
+    private IEnumerator OnBagRoutine()
+    {
+        if (BattleSystem.Instance != null)
+        {
+            StandardPokeball standardPokeball = new();
+            string filename = Regex.Replace(standardPokeball.Name.ToLower(), @"\s+", "");
+            pokeball.GetComponent<Image>().sprite = (Sprite)Resources.Load($"{filename}", typeof(Sprite));
+            SetDialog("You threw a " + standardPokeball.Name + "!");
+            yield return StartCoroutine(WaitForDialogueBox());
+            yield return new WaitForSeconds(1f);
+            BattleSystem.Instance.TryCatchPokemon(standardPokeball);
+        }
+        else
+        {
+            Debug.LogError("BattleSystem instance not found.");
+        }
     }
 
     private IEnumerator BagButtonRoutine()
@@ -110,7 +267,7 @@ public class MainBattleButtons : MonoBehaviour
     private IEnumerator RunButtonRoutine()
     {
         int F = (((playerUnit.Pokemon.Speed * 128) / enemyUnit.Pokemon.Speed) + 30 * escapeAttempts) % 256;
-        if (Random.Range(0, 256) < F)
+        if (UnityEngine.Random.Range(0, 256) < F)
         {
             SetDialog("Got away safely!");
             yield return StartCoroutine(WaitForDialogBox());

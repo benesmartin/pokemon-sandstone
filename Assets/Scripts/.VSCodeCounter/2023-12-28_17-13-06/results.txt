@@ -1,0 +1,52 @@
+Date : 2023-12-28 17:13:06
+Directory : c:\Users\marti\Videos\pokemon-sandstone\pokemon-sandstone\Assets\Scripts
+Total : 25 files,  1922 codes, 111 comments, 288 blanks, all 2321 lines
+
+Languages
++----------+------------+------------+------------+------------+------------+
+| language | files      | code       | comment    | blank      | total      |
++----------+------------+------------+------------+------------+------------+
+| C#       |         25 |      1,922 |        111 |        288 |      2,321 |
++----------+------------+------------+------------+------------+------------+
+
+Directories
++-------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                                                              | files      | code       | comment    | blank      | total      |
++-------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                                                 |         25 |      1,922 |        111 |        288 |      2,321 |
+| . (Files)                                                                                                         |         13 |        696 |         24 |         98 |        818 |
+| Battle                                                                                                            |          6 |        815 |         32 |        141 |        988 |
+| Pokemon                                                                                                           |          6 |        411 |         55 |         49 |        515 |
++-------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++-------------------------------------------------------------------------------------------------------------------+----------+------------+------------+------------+------------+
+| filename                                                                                                          | language | code       | comment    | blank      | total      |
++-------------------------------------------------------------------------------------------------------------------+----------+------------+------------+------------+------------+
+| c:\Users\marti\Videos\pokemon-sandstone\pokemon-sandstone\Assets\Scripts\BGmusic.cs                               | C#       |         18 |          0 |          2 |         20 |
+| c:\Users\marti\Videos\pokemon-sandstone\pokemon-sandstone\Assets\Scripts\Battle\BattleDialogBox.cs                | C#       |         40 |          0 |          9 |         49 |
+| c:\Users\marti\Videos\pokemon-sandstone\pokemon-sandstone\Assets\Scripts\Battle\BattleSystem.cs                   | C#       |        383 |         12 |         65 |        460 |
+| c:\Users\marti\Videos\pokemon-sandstone\pokemon-sandstone\Assets\Scripts\Battle\BattleUnit.cs                     | C#       |        103 |         12 |         14 |        129 |
+| c:\Users\marti\Videos\pokemon-sandstone\pokemon-sandstone\Assets\Scripts\Battle\ButtonOutlineManager.cs           | C#       |         32 |          0 |          6 |         38 |
+| c:\Users\marti\Videos\pokemon-sandstone\pokemon-sandstone\Assets\Scripts\Battle\HPSlider.cs                       | C#       |         20 |          0 |          2 |         22 |
+| c:\Users\marti\Videos\pokemon-sandstone\pokemon-sandstone\Assets\Scripts\Battle\MainBattleButtons.cs              | C#       |        237 |          8 |         45 |        290 |
+| c:\Users\marti\Videos\pokemon-sandstone\pokemon-sandstone\Assets\Scripts\ButtonValueManager.cs                    | C#       |         28 |          0 |          5 |         33 |
+| c:\Users\marti\Videos\pokemon-sandstone\pokemon-sandstone\Assets\Scripts\CameraFollow.cs                          | C#       |         17 |          0 |          4 |         21 |
+| c:\Users\marti\Videos\pokemon-sandstone\pokemon-sandstone\Assets\Scripts\CharacterValueManager.cs                 | C#       |         23 |          0 |          4 |         27 |
+| c:\Users\marti\Videos\pokemon-sandstone\pokemon-sandstone\Assets\Scripts\DontDestroySlider.cs                     | C#       |         10 |          0 |          2 |         12 |
+| c:\Users\marti\Videos\pokemon-sandstone\pokemon-sandstone\Assets\Scripts\FloatAroundPoint.cs                      | C#       |         14 |          0 |          5 |         19 |
+| c:\Users\marti\Videos\pokemon-sandstone\pokemon-sandstone\Assets\Scripts\MainMenu.cs                              | C#       |        176 |          0 |         18 |        194 |
+| c:\Users\marti\Videos\pokemon-sandstone\pokemon-sandstone\Assets\Scripts\PauseMenu.cs                             | C#       |        203 |         17 |         39 |        259 |
+| c:\Users\marti\Videos\pokemon-sandstone\pokemon-sandstone\Assets\Scripts\PlayerMovement.cs                        | C#       |        128 |          7 |          5 |        140 |
+| c:\Users\marti\Videos\pokemon-sandstone\pokemon-sandstone\Assets\Scripts\Pokemon\Move.cs                          | C#       |         13 |          0 |          3 |         16 |
+| c:\Users\marti\Videos\pokemon-sandstone\pokemon-sandstone\Assets\Scripts\Pokemon\MoveBase.cs                      | C#       |         43 |          0 |         11 |         54 |
+| c:\Users\marti\Videos\pokemon-sandstone\pokemon-sandstone\Assets\Scripts\Pokemon\Pokemon.cs                       | C#       |         65 |          0 |          7 |         72 |
+| c:\Users\marti\Videos\pokemon-sandstone\pokemon-sandstone\Assets\Scripts\Pokemon\PokemonBase.cs                   | C#       |         70 |          1 |         10 |         81 |
+| c:\Users\marti\Videos\pokemon-sandstone\pokemon-sandstone\Assets\Scripts\Pokemon\PokemonTypeEffectivenessChart.cs | C#       |        155 |         43 |          8 |        206 |
+| c:\Users\marti\Videos\pokemon-sandstone\pokemon-sandstone\Assets\Scripts\Pokemon\StatGUI.cs                       | C#       |         65 |         11 |         10 |         86 |
+| c:\Users\marti\Videos\pokemon-sandstone\pokemon-sandstone\Assets\Scripts\ProgressBar.cs                           | C#       |         25 |          0 |          2 |         27 |
+| c:\Users\marti\Videos\pokemon-sandstone\pokemon-sandstone\Assets\Scripts\SliderController.cs                      | C#       |         25 |          0 |          5 |         30 |
+| c:\Users\marti\Videos\pokemon-sandstone\pokemon-sandstone\Assets\Scripts\Trigger.cs                               | C#       |         10 |          0 |          2 |         12 |
+| c:\Users\marti\Videos\pokemon-sandstone\pokemon-sandstone\Assets\Scripts\VideoManager.cs                          | C#       |         19 |          0 |          5 |         24 |
+| Total                                                                                                             |          |      1,922 |        111 |        288 |      2,321 |
++-------------------------------------------------------------------------------------------------------------------+----------+------------+------------+------------+------------+

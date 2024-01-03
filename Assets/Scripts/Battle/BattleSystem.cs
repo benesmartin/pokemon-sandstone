@@ -1,9 +1,11 @@
+using DG.Tweening;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using UnityEngine.UIElements;
@@ -19,13 +21,52 @@ public class BattleSystem : MonoBehaviour
     [SerializeField] private GameObject enemyHud;
     [SerializeField] private GameObject dialogBox;
     [SerializeField] private GameObject[] moveButtons;
+    [SerializeField] private GameObject pokemonParty;
+    [SerializeField] private GameObject pokemonPartyDialogBox;
+    [SerializeField] private GameObject cancelButton;
+    [SerializeField] private GameObject turnCounter;
     public int turn;
     private BattleState state;
     public AudioClip song;
+    PokemonParty playerParty;
+    Pokemon enemyPokemon;
+    public bool isItTrue = false;
+    public bool IsPlayerTurn;
+    public int Shakes = 99;
+    public static BattleSystem Instance { get; private set; }
 
+    private void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(this.gameObject);
+        }
+        else
+        {
+            Instance = this;
+        }
+    }
+    public void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.P))
+        {
+
+            Debug.Log("hp: " + playerUnit.Pokemon.HP + " maxhp: " + playerUnit.Pokemon.MaxHP);
+            playerHud.GetComponent<StatGUI>().SetData(playerUnit.Pokemon);
+        }
+    }
     private void Start()
     {
-        SetupBattle();
+        StartBattle();
+    }
+    public void StartBattle()
+    {
+        Shakes = 99;
+        turn = 1;
+        var playerParty = PokemonParty.Instance;
+        Debug.Log(playerParty);
+        var enemyPokemon = MapArea.Instance.GetRandomWildPokemon();
+        SetupBattle(playerParty, enemyPokemon);
     }
     float GetMoveEffectiveness(Move move, PokemonType opponentPrimaryType, PokemonType opponentSecondaryType)
     {
@@ -35,18 +76,105 @@ public class BattleSystem : MonoBehaviour
         return effectivenessPrimary * effectivenessSecondary;
     }
 
-    private void SetupBattle()
+    private void SetupBattle(PokemonParty playerParty, Pokemon enemyPokemon)
     {
-        PlayerAction();
-        playerUnit.Setup();
-        enemyUnit.Setup();
+
+
+        this.playerParty = playerParty;
+        this.enemyPokemon = enemyPokemon;
+        playerUnit.Setup(playerParty.GetHealthyPokemon());
+        enemyUnit.Setup(enemyPokemon);
         UpdateHudData();
-        dialogBox.GetComponent<BattleDialogBox>().TypeDialog($"A wild {enemyUnit.Pokemon.Base.Name} appeared!");
+        StartCoroutine(InitialDialog());
+    }
+    private IEnumerator InitialDialog()
+    {
+        dialogBox.GetComponent<BattleDialogBox>().TypeDialog("A wild " + enemyUnit.Pokemon.Base.Name + " appeared!");
+        MainBattleButtons.Instance.HideMainButtons();
+        PlayerAction();
+        yield return StartCoroutine(WaitForDialogueBox());
+        yield return new WaitForSeconds(1f);
     }
     private void UpdateHudData()
     {
         playerHud.GetComponent<StatGUI>().SetData(playerUnit.Pokemon);
         enemyHud.GetComponent<StatGUI>().SetData(enemyUnit.Pokemon);
+    }
+    private float CalculateCatchRate(Pokemon targetPokemon, Pokeball pokeball)
+    {
+        float statusBonus = 1;
+        float hpPercentage = (float)targetPokemon.HP / targetPokemon.MaxHP;
+        float catchRate = targetPokemon.Base.BaseCatchRate * statusBonus * ((float)pokeball.CatchRateModifier / hpPercentage);
+
+        return Mathf.Clamp(catchRate, 0, 255);
+    }
+    private int CalculateShakes(float catchRate)
+    {
+        int shakes = 0;
+        for (int i = 0; i < 4; i++)
+        {
+            if (UnityEngine.Random.Range(0, 255) < catchRate)
+                shakes++;
+            else
+                break;
+        }
+        return shakes;
+    }
+
+    public void TryCatchPokemon(Pokeball pokeballType)
+    {
+        Debug.Log("TryCatchPokemon called");
+        float catchRate = CalculateCatchRate(enemyUnit.Pokemon, pokeballType);
+        int shakes = CalculateShakes(catchRate);
+        Debug.Log("Catch rate: " + catchRate + ", shakes: " + shakes);
+        if(Shakes != 99) shakes = Shakes;
+        StartCoroutine(CatchAttemptCoroutine(shakes, pokeballType));
+    }
+
+    private IEnumerator CatchAttemptCoroutine(int shakes, Pokeball pokeballType)
+    {
+        bool animationCompleted = false;
+        Action onAnimationComplete = () => animationCompleted = true;
+
+        enemyUnit.PlayPokeballThrowAnimation(shakes, onAnimationComplete);
+
+
+        yield return new WaitUntil(() => animationCompleted);
+
+        string message;
+        switch (shakes)
+        {
+            case 0: message = "Oh no! The Pokemon broke free!"; break;
+            case 1: message = "Aww! It appeared to be caught!"; break;
+            case 2: message = "Aargh! Almost had it!"; break;
+            case 3: message = "Gah! It was so close, too!"; break;
+            case 4:
+                message = $"Gotcha! {enemyUnit.Pokemon.Base.Name} was caught!";
+                dialogBox.GetComponent<BattleDialogBox>().TypeDialog(message);
+                yield return StartCoroutine(WaitForDialogueBox());
+                yield return new WaitForSeconds(1f);
+                yield return StartCoroutine(AddPokemonToParty(enemyUnit.Pokemon));
+                yield return EndBattle(true);
+                break;
+            default: throw new InvalidOperationException("Invalid number of shakes");
+        }
+        if (shakes < 4)
+        {
+            dialogBox.GetComponent<BattleDialogBox>().TypeDialog(message);
+            yield return StartCoroutine(WaitForDialogueBox());
+
+
+            yield return new WaitForSeconds(1f);
+            yield return StartCoroutine(EnemyMoveRoutine());
+
+        }
+
+    }
+
+    private IEnumerator AddPokemonToParty(Pokemon caughtPokemon)
+    {
+        dialogBox.GetComponent<BattleDialogBox>().TypeDialog(PokemonParty.Instance.AddPokemon(caughtPokemon));
+        yield return WaitForDialogueBox();
     }
 
     private void SetMoveButtons(List<Move> moves)
@@ -68,7 +196,68 @@ public class BattleSystem : MonoBehaviour
 
         SetupNavigation(activeButtons);
     }
+    public void SwitchPokemon(int index)
+    {
+        isItTrue = true;
+        StartCoroutine(SwitchPokemonRoutine(index));
+    }
+    public IEnumerator SwitchPokemonRoutine(int index)
+    {
+        var selectedPokemon = playerParty.Pokemons[index];
 
+        if (selectedPokemon.HP <= 0)
+        {
+            pokemonPartyDialogBox.GetComponent<BattleDialogBox>().TypeDialog("You can't send out a fainted Pokemon!");
+            yield return StartCoroutine(WaitForDialogueBox());
+            yield break;
+        }
+
+        if (selectedPokemon == playerUnit.Pokemon)
+        {
+            pokemonPartyDialogBox.GetComponent<BattleDialogBox>().TypeDialog("You can't switch to the same Pokemon!");
+            yield return StartCoroutine(WaitForDialogueBox());
+            yield break;
+        }
+
+        playerUnit.Setup(selectedPokemon);
+        playerHud.GetComponent<StatGUI>().SetData(selectedPokemon);
+        pokemonParty.SetActive(false);
+        MainBattleButtons.Instance.isInMoves = false;
+        dialogBox.GetComponent<BattleDialogBox>().TypeDialog($"Go, {selectedPokemon.Base.Name}!");
+
+
+        yield return StartCoroutine(WaitForDialogueBox());
+
+
+        yield return new WaitForSeconds(2.0f);
+
+
+
+        if (IsPlayerTurn)
+        {
+
+            PlayerAction();
+        }
+        else
+        {
+
+            StartCoroutine(EnemyMoveRoutine());
+        }
+        cancelButton.SetActive(true);
+    }
+    private IEnumerator HandlePokemonFaint()
+    {
+        MainBattleButtons.Instance.SetPokemonPartyButtons(PokemonParty.Instance.Pokemons);
+        yield return new WaitForSeconds(1f);
+
+        OpenPokemonPartyScreen();
+        pokemonPartyDialogBox.GetComponent<BattleDialogBox>().TypeDialog("Choose a Pokemon.");
+        cancelButton.SetActive(false);
+    }
+    private void OpenPokemonPartyScreen()
+    {
+        pokemonParty.SetActive(true);
+    }
     private void SetupNavigation(List<GameObject> activeButtons)
     {
         if (activeButtons.Count <= 1) return;
@@ -149,13 +338,45 @@ public class BattleSystem : MonoBehaviour
     private IEnumerator EndBattle(bool playerWins)
     {
         yield return new WaitForSeconds(1f);
-        string resultMessage = playerWins ? "You won!" : "You lost!";
-        dialogBox.GetComponent<BattleDialogBox>().TypeDialog(resultMessage);
-        yield return StartCoroutine(WaitForDialogueBox());
+
+        if (!playerWins)
+        {
+
+            string playerName = "Martin";
+            int coinsLost = CalculateCoinsLost();
+
+            dialogBox.GetComponent<BattleDialogBox>().TypeDialog($"{playerName} is out of usable Pokemon!");
+            yield return StartCoroutine(WaitForDialogueBox());
+            yield return new WaitForSeconds(1f);
+
+            dialogBox.GetComponent<BattleDialogBox>().TypeDialog($"{playerName} gave {coinsLost} coins to the foe!");
+            yield return StartCoroutine(WaitForDialogueBox());
+
+            yield return new WaitForSeconds(1f);
+
+            dialogBox.GetComponent<BattleDialogBox>().TypeDialog("...");
+            yield return StartCoroutine(WaitForDialogueBox());
+            yield return new WaitForSeconds(1f);
+            dialogBox.GetComponent<BattleDialogBox>().TypeDialog($"{playerName} blacked out!");
+            yield return StartCoroutine(WaitForDialogueBox());
+            PokemonParty.Instance.HealAllPokemon();
+        }
+        else
+        {
+
+            dialogBox.GetComponent<BattleDialogBox>().TypeDialog("You won!");
+            yield return StartCoroutine(WaitForDialogueBox());
+        }
 
         yield return new WaitForSeconds(1f);
         PlaySong(song);
         SceneManager.LoadScene("Game");
+    }
+
+    private int CalculateCoinsLost()
+    {
+
+        return 100;
     }
 
 
@@ -169,8 +390,16 @@ public class BattleSystem : MonoBehaviour
 
     private void PlayerAction()
     {
+        Debug.Log("[BattleSystem] PlayerAction called");
         state = BattleState.PlayerAction;
+        UpdateTurnCounter();
         StartCoroutine(EnablePlayerActions());
+    }
+
+    private void UpdateTurnCounter()
+    {
+        turnCounter.GetComponent<TextMeshProUGUI>().text = "Turn " + turn;
+        turn++;
     }
 
     private IEnumerator EnablePlayerActions()
@@ -178,7 +407,7 @@ public class BattleSystem : MonoBehaviour
         yield return StartCoroutine(WaitForDialogueBox());
         yield return new WaitForSeconds(1f);
         SetMoveButtons(playerUnit.Pokemon.Moves);
-        MainBattleButtons.Instance.ReturnToMenu();
+        MainBattleButtons.Instance.ReturnToMenu(true);
     }
 
     public void PerformMove(int moveButtonIndex)
@@ -210,19 +439,43 @@ public class BattleSystem : MonoBehaviour
         yield return StartCoroutine(WaitForDialogueBox());
 
         float effectiveness = GetMoveEffectiveness(move, playerUnit.Pokemon.Base.Type1, playerUnit.Pokemon.Base.Type2);
-        
-        StartCoroutine(FlashSprite(playerUnit.GetComponent<UnityEngine.UI.Image>(), 3, 0.1f));
-        
-        playerUnit.Pokemon.TakeDamage(move, effectiveness);
-        UpdateHud(playerUnit);
+        bool isCritical = false;
+        if (effectiveness > 0)
+        {
+            isCritical = UnityEngine.Random.Range(0, 24) == 0;
+            enemyUnit.PlayAttackAnimation();
+            StartCoroutine(FlashSprite(playerUnit.GetComponent<UnityEngine.UI.Image>(), 3, 0.1f));
+            playerUnit.Pokemon.TakeDamage(move, effectiveness, isCritical, enemyUnit.Pokemon);
+            UpdateHud(playerUnit);
+        }
 
         yield return new WaitForSeconds(1f);
 
         yield return StartCoroutine(ShowEffectivenessMessage(effectiveness, playerUnit.Pokemon.Base.Name));
+        if (isCritical)
+        {
+            yield return new WaitForSeconds(1f);
+            dialogBox.GetComponent<BattleDialogBox>().TypeDialog($"A critical hit!");
+
+            yield return StartCoroutine(WaitForDialogueBox());
+        }
 
         if (playerUnit.Pokemon.HP <= 0)
         {
-            StartCoroutine(EndBattle(false));
+            yield return new WaitForSeconds(1f);
+            dialogBox.GetComponent<BattleDialogBox>().TypeDialog($"{playerUnit.Pokemon.Base.Name} fainted!");
+            yield return StartCoroutine(WaitForDialogueBox());
+            playerUnit.PlayFaintAnimation();
+            var nextPokemon = playerParty.GetHealthyPokemon();
+            if (nextPokemon != null)
+            {
+                IsPlayerTurn = true;
+                yield return StartCoroutine(HandlePokemonFaint());
+            }
+            else
+            {
+                yield return StartCoroutine(EndBattle(false));
+            }
         }
         else
         {
@@ -235,20 +488,39 @@ public class BattleSystem : MonoBehaviour
         yield return StartCoroutine(WaitForDialogueBox());
 
         float effectiveness = GetMoveEffectiveness(move, enemyUnit.Pokemon.Base.Type1, enemyUnit.Pokemon.Base.Type2);
-        
-        StartCoroutine(FlashSprite(enemyUnit.GetComponent<UnityEngine.UI.Image>(), 3, 0.1f));
+        bool isCritical = false;
+        if (effectiveness > 0)
+        {
+            isCritical = UnityEngine.Random.Range(0, 24) == 0;
+            playerUnit.PlayAttackAnimation();
+            StartCoroutine(FlashSprite(enemyUnit.GetComponent<UnityEngine.UI.Image>(), 3, 0.1f));
+            enemyUnit.Pokemon.TakeDamage(move, effectiveness, isCritical, playerUnit.Pokemon);
+            UpdateHud(enemyUnit);
+        }
 
-       
-        enemyUnit.Pokemon.TakeDamage(move, effectiveness);
-        UpdateHud(enemyUnit);
 
         yield return new WaitForSeconds(1f);
 
         yield return StartCoroutine(ShowEffectivenessMessage(effectiveness, playerUnit.Pokemon.Base.Name));
 
+
+        if (isCritical)
+        {
+            yield return new WaitForSeconds(1f);
+            dialogBox.GetComponent<BattleDialogBox>().TypeDialog($"A critical hit!");
+
+            yield return StartCoroutine(WaitForDialogueBox());
+        }
+
         if (enemyUnit.Pokemon.HP <= 0)
         {
-            StartCoroutine(EndBattle(true));
+            yield return new WaitForSeconds(1f);
+            dialogBox.GetComponent<BattleDialogBox>().TypeDialog($"{enemyUnit.Pokemon.Base.Name} fainted!");
+            yield return StartCoroutine(WaitForDialogueBox());
+            enemyUnit.PlayFaintAnimation();
+            yield return new WaitForSeconds(1f);
+
+            yield return StartCoroutine(EndBattle(true));
         }
         else
         {

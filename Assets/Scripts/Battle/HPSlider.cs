@@ -11,7 +11,7 @@ public class HPSlider : MonoBehaviour
     public Slider slider;
     public void OnSliderChanged(float value)
     {
-        text.text = value.ToString() + "/x";
+        text.text = value.ToString() + "/" + slider.maxValue;
     }
     public void UpdateProgress()
     {

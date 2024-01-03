@@ -18,3 +18,4 @@ MonoBehaviour:
   power: 40
   accuracy: 100
   pp: 25
+  isSpecial: 1

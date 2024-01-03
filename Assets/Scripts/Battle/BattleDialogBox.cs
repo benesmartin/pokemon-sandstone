@@ -43,6 +43,10 @@ public class BattleDialogBox : MonoBehaviour
         isTyping = false;
         DialogCompleted?.Invoke();
     }
+    public void SetDialogText(string dialog)
+    {
+        dialogText.text = dialog;
+    }
 }
 
 

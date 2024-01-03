@@ -1,17 +1,19 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+[Serializable]
 public class Pokemon
 {
-    public PokemonBase Base { get; set; }
-    public int Level { get; set; }
+    [SerializeField] PokemonBase _base;
+    [SerializeField] int level;
+    public PokemonBase Base { get => _base;}
+    public int Level { get => level;}
     public int HP { get; set; }
     public List<Move> Moves { get; set; }
-    public Pokemon(PokemonBase pBase, int pLevel)
+    public void Init()
     {
-        Base = pBase;
-        Level = pLevel;
         HP = MaxHP;
         Moves = new List<Move>();
         if (Base.LearnableMoves == null)
@@ -31,8 +33,15 @@ public class Pokemon
             }
         }
     }
-    public void TakeDamage(Move move, float effectiveness)
+    public void Heal()
     {
+        HP = MaxHP;
+    }
+    public void TakeDamage(Move move, float effectiveness, bool isCritical, Pokemon attacker)
+    {
+        float attack = move.Base.IsSpecial ? attacker.SpAttack : attacker.Attack;
+        float defense = move.Base.IsSpecial ? SpDefense : Defense;
+
         float burn = 1f;
         float targets = 1f;
         float weather = 1f;
@@ -40,21 +49,18 @@ public class Pokemon
         float zMove = 1f;
         float teraShield = 1f;
         float glaiveRush = 1f;
-
-        float critical = /*Random.value <= 0.0625f ? 1.5f : 1f*/ 1;
+        float critical = isCritical ? 1.5f : 1f;
         float stab = move.Base.Type == Base.Type1 || move.Base.Type == Base.Type2 ? 1.5f : 1f;
         float types = effectiveness;
 
-        float modifiers = Random.Range(0.85f, 1f);
-        float a = ((2 * Level) / 5) + 2;
-        float d = a * move.Base.Power * ((float)Attack / Defense);
+        float modifiers = UnityEngine.Random.Range(0.85f, 1f);
+        float a = ((2 * attacker.Level) / 5) + 2;
+        float d = a * move.Base.Power * ((float)attack / defense);
         d = (d / 50) + 2;
         d *= targets * parentalBond * weather * glaiveRush * critical * modifiers * stab * types * burn * zMove * teraShield;
 
         int damage = Mathf.FloorToInt(d);
-        Debug.Log(damage);
-
-        HP -= damage;
+        HP = Mathf.Clamp(HP - damage, 0, HP);
     }
 
     public int MaxHP { get => Mathf.FloorToInt(0.01f * (2 * Base.MaxHP + 31 + Mathf.Floor(0.25f * 255) * Level) + Level + 10); }

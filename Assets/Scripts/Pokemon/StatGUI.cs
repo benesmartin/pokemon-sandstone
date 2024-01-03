@@ -10,14 +10,18 @@ public class StatGUI : MonoBehaviour
     [SerializeField] TextMeshProUGUI levelText;
     [SerializeField] Slider hpSlider;
     [SerializeField] TextMeshProUGUI hpValue;
-    private Image fillImage;
+    [SerializeField] Image fillImage;
     public void SetData(Pokemon pokemon)
     {
+        StopAllCoroutines();
+        Debug.Log("[StatGUI SetData] Setting HP: " + pokemon.HP + " / " + pokemon.MaxHP);
         nameText.text = pokemon.Base.Name;
         levelText.text = "Lv. " + pokemon.Level;
         hpSlider.maxValue = pokemon.MaxHP;
         hpSlider.value = pokemon.HP;
         hpValue.text = pokemon.HP + "/" + pokemon.MaxHP;
+        Canvas.ForceUpdateCanvases(); // Force the canvas to update
+        UpdateFillColor(pokemon.HP, pokemon.MaxHP);
     }
     void Start()
     {
@@ -31,6 +35,7 @@ public class StatGUI : MonoBehaviour
 
     IEnumerator UpdateHPCoroutine(Pokemon pokemon)
     {
+        Debug.Log("[StatGUI UpdateHPCoroutine] Called for: " + pokemon.Base.Name + " with HP: " + pokemon.HP);
         while (hpSlider.value > pokemon.HP)
         {
             hpSlider.value--;
@@ -59,17 +64,17 @@ public class StatGUI : MonoBehaviour
             fillImage.color = Color.Lerp(lowHPColor, mediumHPColor, hpPercentage * 2);
         }
 
-        if (currentHP <= 0)
-        {
-            fillImage.gameObject.SetActive(false);
-        }
-        else
-        {
-            if (!fillImage.gameObject.activeSelf)
-            {
-                fillImage.gameObject.SetActive(true);
-            }
-        }
+        //if (currentHP <= 0)
+        //{
+        //    fillImage.gameObject.SetActive(false);
+        //}
+        //else
+        //{
+        //    if (!fillImage.gameObject.activeSelf)
+        //    {
+        //        fillImage.gameObject.SetActive(true);
+        //    }
+        //}
     }
     private Color HexToColor(string hex)
     {
