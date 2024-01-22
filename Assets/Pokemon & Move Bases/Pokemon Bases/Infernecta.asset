@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   name: Infernecta
   description: 'Infernectas live in nests where they protect their queen. If the
-    queen is killed, anarchy starts and all of Infernectas start attacking eachother
+    queen is killed, anarchy starts and all of Infernectas start attacking each other
     and burn their nest. '
   frontSprite: {fileID: 21300000, guid: 9e7da40be0c2e6a4b8469d86762fb081, type: 3}
   backSprite: {fileID: 21300000, guid: 9e7da40be0c2e6a4b8469d86762fb081, type: 3}
@@ -26,6 +26,7 @@ MonoBehaviour:
   spAttack: 50
   spDefense: 50
   speed: 50
+  baseCatchRate: 100
   learnableMoves:
   - moveBase: {fileID: 11400000, guid: 0914b98efacbbb0458f7b3ce5ef0ac7d, type: 2}
     level: 1

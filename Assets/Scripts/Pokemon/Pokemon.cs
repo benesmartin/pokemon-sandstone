@@ -14,7 +14,7 @@ public class Pokemon
     public List<Move> Moves { get; set; }
     public void Init()
     {
-        HP = MaxHP;
+        Heal();
         Moves = new List<Move>();
         if (Base.LearnableMoves == null)
         {
@@ -60,6 +60,7 @@ public class Pokemon
         d *= targets * parentalBond * weather * glaiveRush * critical * modifiers * stab * types * burn * zMove * teraShield;
 
         int damage = Mathf.FloorToInt(d);
+        Debug.Log($"{attacker.Base.Name} used {move.Base.Name} on {Base.Name} for {damage} damage");
         HP = Mathf.Clamp(HP - damage, 0, HP);
     }
 

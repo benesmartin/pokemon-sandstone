@@ -2,13 +2,13 @@ using DG.Tweening;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using UnityEngine.UIElements;
 
 
 
@@ -25,6 +25,7 @@ public class BattleSystem : MonoBehaviour
     [SerializeField] private GameObject pokemonPartyDialogBox;
     [SerializeField] private GameObject cancelButton;
     [SerializeField] private GameObject turnCounter;
+    [SerializeField] private GameObject firstPokemonButton;
     public int turn;
     private BattleState state;
     public AudioClip song;
@@ -32,7 +33,10 @@ public class BattleSystem : MonoBehaviour
     Pokemon enemyPokemon;
     public bool isItTrue = false;
     public bool IsPlayerTurn;
+    public bool IsFaintSwitching = false;
     public int Shakes = 99;
+    public float catchRate;
+    public List<Pokemon> NPCPokemons = new List<Pokemon>();
     public static BattleSystem Instance { get; private set; }
 
     private void Awake()
@@ -54,20 +58,69 @@ public class BattleSystem : MonoBehaviour
             Debug.Log("hp: " + playerUnit.Pokemon.HP + " maxhp: " + playerUnit.Pokemon.MaxHP);
             playerHud.GetComponent<StatGUI>().SetData(playerUnit.Pokemon);
         }
+        if (Input.GetKeyDown(KeyCode.O))
+        {
+            Debug.Log("isplayerturn: " + IsPlayerTurn);
+            foreach (var item in PokemonParty.Instance.Pokemons)
+            {
+                Debug.Log(item.Base.Name + " hp: " + item.HP + " maxhp: " + item.MaxHP);
+            }
+        }
     }
     private void Start()
     {
-        StartBattle();
+        CharacterValueManager.Instance.transition.SetActive(false);
+        StartBattle(PokemonParty.Instance.IsWildBattle);
     }
-    public void StartBattle()
+    public void StartBattle(bool isWildBattle)
     {
         Shakes = 99;
         turn = 1;
         var playerParty = PokemonParty.Instance;
-        Debug.Log(playerParty);
-        var enemyPokemon = MapArea.Instance.GetRandomWildPokemon();
+        var enemyPokemon = isWildBattle ? MapArea.Instance.GetRandomWildPokemon() : playerParty.GetHealthyEnemyPokemon();
+        playerParty.GetHealthyPokemon();
+        if (playerParty.GetHealthyPokemon() == null)
+        {
+            Debug.LogError("No healthy Pok�mon in player's party. Cannot start battle.");
+            
+            return;
+        }
+
+        if (enemyPokemon == null)
+        {
+            Debug.LogError("No wild Pok�mon found. Cannot start battle.");
+            
+            return;
+        }
+
         SetupBattle(playerParty, enemyPokemon);
     }
+
+
+    private void SetupBattle(PokemonParty playerParty, Pokemon enemyPokemon)
+    {
+        this.playerParty = playerParty;
+        this.enemyPokemon = enemyPokemon;
+
+        Debug.Log($"Setting up player unit with {playerParty.GetHealthyPokemon()?.Base?.Name}");
+        Debug.Log($"Setting up enemy unit with {enemyPokemon?.Base?.Name}");
+
+        if (playerParty.GetHealthyPokemon() == null)
+        {
+            Debug.LogError("GetHealthyPokemon returned null.");
+        }
+
+        if (enemyPokemon == null)
+        {
+            Debug.LogError("GetRandomWildPokemon returned null or there is no healthy enemy Pokemon.");
+        }
+
+        playerUnit.Setup(playerParty.GetHealthyPokemon());
+        enemyUnit.Setup(enemyPokemon);
+        UpdateHudData();
+        StartCoroutine(InitialDialog());
+    }
+
     float GetMoveEffectiveness(Move move, PokemonType opponentPrimaryType, PokemonType opponentSecondaryType)
     {
         float effectivenessPrimary = PokemonTypeEffectivenessChart.Instance.GetEffectiveness(move.Base.Type, opponentPrimaryType);
@@ -75,23 +128,62 @@ public class BattleSystem : MonoBehaviour
 
         return effectivenessPrimary * effectivenessSecondary;
     }
-
-    private void SetupBattle(PokemonParty playerParty, Pokemon enemyPokemon)
-    {
-
-
-        this.playerParty = playerParty;
-        this.enemyPokemon = enemyPokemon;
-        playerUnit.Setup(playerParty.GetHealthyPokemon());
-        enemyUnit.Setup(enemyPokemon);
-        UpdateHudData();
-        StartCoroutine(InitialDialog());
-    }
     private IEnumerator InitialDialog()
     {
-        dialogBox.GetComponent<BattleDialogBox>().TypeDialog("A wild " + enemyUnit.Pokemon.Base.Name + " appeared!");
         MainBattleButtons.Instance.HideMainButtons();
+        
+        GameObject[] playerPokemonGUI = GameObject.FindGameObjectsWithTag("PlayerPokemonGUI");
+        GameObject[] enemyPokemonGUI = GameObject.FindGameObjectsWithTag("FoePokemonGUI");
+        foreach (var item in playerPokemonGUI)
+        {
+            item.GetComponent<Image>().DOFade(0, 0f);
+            item.GetComponent<TextMeshProUGUI>().DOFade(0, 0f);
+        }
+        foreach (var item in enemyPokemonGUI)
+        {
+            item.GetComponent<Image>().DOFade(0, 0f);
+            item.GetComponent<TextMeshProUGUI>().DOFade(0, 0f);
+        }
+        if (PokemonParty.Instance.IsWildBattle)
+        {
+            dialogBox.SetActive(false);
+            yield return new WaitForSeconds(3f);
+            dialogBox.SetActive(true);
+            dialogBox.GetComponent<BattleDialogBox>().TypeDialog("A wild " + enemyUnit.Pokemon.Base.Name + " appeared!");
+
+            yield return StartCoroutine(WaitForDialogueBox());
+            foreach (var item in enemyPokemonGUI)
+            {
+                item.GetComponent<Image>().DOFade(1, 0.5f);
+                item.GetComponent<TextMeshProUGUI>().DOFade(1, 0.5f);
+            }
+            yield return new WaitForSeconds(1f);
+            dialogBox.GetComponent<BattleDialogBox>().TypeDialog("Go,  " + playerUnit.Pokemon.Base.Name + "!");
+        } 
+        else
+        {
+            dialogBox.GetComponent<BattleDialogBox>().TypeDialog("You are challenged by Trainer Girl" + "!");
+            yield return StartCoroutine(WaitForDialogueBox());
+            yield return new WaitForSeconds(1.5f);
+            dialogBox.GetComponent<BattleDialogBox>().TypeDialog("Trainer Girl sent out " + enemyUnit.Pokemon.Base.Name +  "!");
+            
+            yield return StartCoroutine(WaitForDialogueBox());
+            yield return new WaitForSeconds(1f);
+            foreach (var item in enemyPokemonGUI)
+            {
+                item.GetComponent<Image>().DOFade(1, 0.5f);
+                item.GetComponent<TextMeshProUGUI>().DOFade(1, 0.5f);
+            }
+            yield return new WaitForSeconds(0.75f);
+            dialogBox.GetComponent<BattleDialogBox>().TypeDialog("Go,  " + playerUnit.Pokemon.Base.Name + "!");
+        }
+        yield return new WaitForSeconds(2f);
         PlayerAction();
+        foreach (var item in playerPokemonGUI)
+        {
+            item.GetComponent<Image>().DOFade(1, 0.5f);
+            item.GetComponent<TextMeshProUGUI>().DOFade(1, 0.5f);
+        }
         yield return StartCoroutine(WaitForDialogueBox());
         yield return new WaitForSeconds(1f);
     }
@@ -120,14 +212,26 @@ public class BattleSystem : MonoBehaviour
         }
         return shakes;
     }
+    private float GetCurrentCatchRateInPercent(Pokemon targetPokemon, Pokeball pokeball)
+    {
+        float catchRate = CalculateCatchRate(targetPokemon, pokeball);
+
+        
+        
+        float catchRatePercent = Mathf.Max(1, catchRate / 255 * 100);
+
+        return catchRatePercent;
+    }
 
     public void TryCatchPokemon(Pokeball pokeballType)
     {
         Debug.Log("TryCatchPokemon called");
         float catchRate = CalculateCatchRate(enemyUnit.Pokemon, pokeballType);
         int shakes = CalculateShakes(catchRate);
+        this.catchRate = GetCurrentCatchRateInPercent(enemyUnit.Pokemon, pokeballType);
+        UpdateCatchRate(shakes);
         Debug.Log("Catch rate: " + catchRate + ", shakes: " + shakes);
-        if(Shakes != 99) shakes = Shakes;
+        if(DebugMenu.Instance.isCatchRate100) shakes = 4;
         StartCoroutine(CatchAttemptCoroutine(shakes, pokeballType));
     }
 
@@ -137,7 +241,6 @@ public class BattleSystem : MonoBehaviour
         Action onAnimationComplete = () => animationCompleted = true;
 
         enemyUnit.PlayPokeballThrowAnimation(shakes, onAnimationComplete);
-
 
         yield return new WaitUntil(() => animationCompleted);
 
@@ -199,6 +302,7 @@ public class BattleSystem : MonoBehaviour
     public void SwitchPokemon(int index)
     {
         isItTrue = true;
+        IsPlayerTurn = IsFaintSwitching;
         StartCoroutine(SwitchPokemonRoutine(index));
     }
     public IEnumerator SwitchPokemonRoutine(int index)
@@ -244,15 +348,17 @@ public class BattleSystem : MonoBehaviour
             StartCoroutine(EnemyMoveRoutine());
         }
         cancelButton.SetActive(true);
+        IsFaintSwitching = false;
     }
     private IEnumerator HandlePokemonFaint()
     {
         MainBattleButtons.Instance.SetPokemonPartyButtons(PokemonParty.Instance.Pokemons);
         yield return new WaitForSeconds(1f);
-
+        IsFaintSwitching = true;
+        cancelButton.SetActive(false);
         OpenPokemonPartyScreen();
         pokemonPartyDialogBox.GetComponent<BattleDialogBox>().TypeDialog("Choose a Pokemon.");
-        cancelButton.SetActive(false);
+        EventSystem.current.SetSelectedGameObject(firstPokemonButton);
     }
     private void OpenPokemonPartyScreen()
     {
@@ -338,21 +444,24 @@ public class BattleSystem : MonoBehaviour
     private IEnumerator EndBattle(bool playerWins)
     {
         yield return new WaitForSeconds(1f);
-
         if (!playerWins)
         {
 
-            string playerName = "Martin";
+            string playerName = "You";
             int coinsLost = CalculateCoinsLost();
 
-            dialogBox.GetComponent<BattleDialogBox>().TypeDialog($"{playerName} is out of usable Pokemon!");
+            dialogBox.GetComponent<BattleDialogBox>().TypeDialog($"{playerName} are out of usable Pokemon!");
             yield return StartCoroutine(WaitForDialogueBox());
             yield return new WaitForSeconds(1f);
 
-            dialogBox.GetComponent<BattleDialogBox>().TypeDialog($"{playerName} gave {coinsLost} coins to the foe!");
-            yield return StartCoroutine(WaitForDialogueBox());
+            if (!PokemonParty.Instance.IsWildBattle)
+            {
+                dialogBox.GetComponent<BattleDialogBox>().TypeDialog($"{playerName} gave {coinsLost} coins to the foe!");
+                yield return StartCoroutine(WaitForDialogueBox());
 
-            yield return new WaitForSeconds(1f);
+                yield return new WaitForSeconds(1f);
+            }
+            
 
             dialogBox.GetComponent<BattleDialogBox>().TypeDialog("...");
             yield return StartCoroutine(WaitForDialogueBox());
@@ -391,6 +500,7 @@ public class BattleSystem : MonoBehaviour
     private void PlayerAction()
     {
         Debug.Log("[BattleSystem] PlayerAction called");
+        IsPlayerTurn = true;
         state = BattleState.PlayerAction;
         UpdateTurnCounter();
         StartCoroutine(EnablePlayerActions());
@@ -400,6 +510,14 @@ public class BattleSystem : MonoBehaviour
     {
         turnCounter.GetComponent<TextMeshProUGUI>().text = "Turn " + turn;
         turn++;
+        UpdateCatchRate();
+    }
+
+    public void UpdateCatchRate(int shakes = 5)
+    {
+        this.catchRate = GetCurrentCatchRateInPercent(enemyUnit.Pokemon, new StandardPokeball());
+        if (!DebugMenu.Instance.isCatchRate100) DebugMenu.Instance.UpdateDebugInfo("CatchRate", $"{this.catchRate.ToString("0.00")}% ({(shakes == 5 ? "Throw a Pok�Ball to calculate shakes" : shakes.ToString() + " shakes")})");
+        else DebugMenu.Instance.UpdateDebugInfo("CatchRate", $"100% (Shakes: 4x)");
     }
 
     private IEnumerator EnablePlayerActions()
@@ -426,12 +544,50 @@ public class BattleSystem : MonoBehaviour
         state = BattleState.Busy;
         StartCoroutine(PlayerMoveRoutine(move));
     }
+    private int GetMostEffectiveMove(List<Move> moves)
+    {
+        int mostEffectiveMoveIndex = -1;
+        float highestEffectiveness = 0f;
+        int highestPower = 0;
+
+        for (int i = 0; i < moves.Count; i++)
+        {
+            Move move = moves[i];
+            float effectiveness = GetMoveEffectiveness(move, playerUnit.Pokemon.Base.Type1, playerUnit.Pokemon.Base.Type2);
+            int power = move.Base.Power;
+            int pp = move.PP;
+
+            if ((effectiveness > highestEffectiveness ||
+                (effectiveness == highestEffectiveness && power > highestPower)) && pp > 0)
+            {
+                highestEffectiveness = effectiveness;
+                highestPower = power;
+                mostEffectiveMoveIndex = i;
+            }
+        }
+
+        if (mostEffectiveMoveIndex != -1)
+        {
+            Debug.Log("Enemy's most effective move is: " + moves[mostEffectiveMoveIndex].Base.Name +
+                      " with effectiveness: " + highestEffectiveness +
+                      " and power: " + highestPower +
+                      " and PP: " + moves[mostEffectiveMoveIndex].PP);
+        }
+        else
+        {
+            Debug.Log("No move available");
+        }
+
+        return mostEffectiveMoveIndex;
+    }
+
+
+
 
     private IEnumerator EnemyMoveRoutine()
     {
         yield return new WaitForSeconds(1f);
-
-        int enemyMoveIndex = UnityEngine.Random.Range(0, enemyUnit.Pokemon.Moves.Count);
+        int enemyMoveIndex = PokemonParty.Instance.IsWildBattle ? UnityEngine.Random.Range(0, enemyUnit.Pokemon.Moves.Count) : GetMostEffectiveMove(enemyUnit.Pokemon.Moves);
         Move move = enemyUnit.Pokemon.Moves[enemyMoveIndex];
 
         dialogBox.GetComponent<BattleDialogBox>().TypeDialog($"{enemyUnit.Pokemon.Base.Name} used {move.Base.Name}!");
@@ -485,6 +641,7 @@ public class BattleSystem : MonoBehaviour
 
     private IEnumerator PlayerMoveRoutine(Move move)
     {
+        IsPlayerTurn = false;
         yield return StartCoroutine(WaitForDialogueBox());
 
         float effectiveness = GetMoveEffectiveness(move, enemyUnit.Pokemon.Base.Type1, enemyUnit.Pokemon.Base.Type2);

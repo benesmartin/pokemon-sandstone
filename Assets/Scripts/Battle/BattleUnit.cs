@@ -3,15 +3,22 @@ using UnityEngine.UI;
 using System.Collections;
 using DG.Tweening;
 using System;
+using System.Collections.Generic;
+using DG.Tweening.Core;
+using DG.Tweening.Plugins.Options;
 
 public class BattleUnit : MonoBehaviour
 {
     [SerializeField] bool isPlayerUnit;
     [SerializeField] GameObject pokeball;
+    [SerializeField] Image trainer;
+    [SerializeField] Sprite trainer2;
+    [SerializeField] Sprite trainer3;
     public Pokemon Pokemon { get; private set; }
     private RectTransform rectTransform;
     Image image;
     Vector3 originalPos;
+    private bool initialAnimationPlayed = false;
     private void Awake()
     {
         image = GetComponent<Image>();
@@ -71,19 +78,137 @@ public class BattleUnit : MonoBehaviour
     }
     public void Setup(Pokemon pokemon)
     {
-        Debug.Log("[PlayerUnit] Setup called, Pok�mon HP: " + pokemon.HP);
+        Debug.Log("[PlayerUnit] Setup called for" + pokemon.Base.Name + ", Pokémon HP: " + pokemon.HP);
         Pokemon = pokemon;
         image.sprite = Pokemon.Base.BackSprite;
-        PlayEnterAnimation();
-
-
-
-
-
-
+        if (PokemonParty.Instance.IsWildBattle)
+        {
+            if (!initialAnimationPlayed) StartCoroutine(PlayWildBattleEnterAnimation());
+            else PlayEnterAnimation();
+        }
+        else
+        {
+            if (!initialAnimationPlayed) StartCoroutine(StartAnimation());
+            else PlayEnterAnimation();
+        }
     }
+    private IEnumerator PlayWildBattleEnterAnimation()
+    {
+        TweenerCore<Vector2, Vector2, VectorOptions> wildPokemonMove = null;
+        if (!isPlayerUnit)
+        { 
+            
+            var wildPokemonImage = image; 
+            image.DOFade(1f, 0f);
+            
+            wildPokemonImage.rectTransform.anchoredPosition = new Vector2(-2400, -574); 
+            wildPokemonMove = wildPokemonImage.rectTransform.DOAnchorPos(new Vector2(-1058, -574), 3f).SetEase(Ease.OutSine);
+        }
+
+        Coroutine trainerMove = null;
+        
+        if (isPlayerUnit)
+        {
+            var trainerImage = trainer; 
+            trainerImage.rectTransform.anchoredPosition = new Vector2(1269, -294); 
+
+            
+            trainerMove = StartCoroutine(MoveTrainerToBattlePosition(trainerImage));
+        }
+
+        
+        yield return wildPokemonMove?.WaitForCompletion();
+
+        
+        if (trainerMove != null)
+        {
+            yield return trainerMove;
+        }
+
+        
+        yield return new WaitForSeconds(2f); 
+
+        
+        if (isPlayerUnit)
+        {
+            yield return StartCoroutine(MoveTrainerOffScreen(trainer));
+        }
+
+        initialAnimationPlayed = true;
+    }
+
+    private IEnumerator MoveTrainerToBattlePosition(Image trainerImage)
+    {
+        
+        yield return trainerImage.rectTransform.DOAnchorPos(new Vector2(-500, -294), 3f).SetEase(Ease.OutSine).WaitForCompletion();
+    }
+
+
+
+    private IEnumerator StartAnimation()
+    {
+        if (!isPlayerUnit) this.image.DOFade(0f, 0f);
+        var image = trainer; 
+                         
+        if (isPlayerUnit)
+        {
+            
+            image.rectTransform.anchoredPosition = new Vector2(1269, -294); 
+                                                                            
+            yield return image.rectTransform.DOAnchorPos(new Vector2(-500, -294), 3f).SetEase(Ease.OutSine).WaitForCompletion();
+
+            yield return new WaitForSeconds(3f);
+            
+            yield return StartCoroutine(MoveTrainerOffScreen(image));
+        }
+        else
+        {
+            
+            image.rectTransform.anchoredPosition = new Vector2(-2400, -468); 
+                                                                             
+            yield return image.rectTransform.DOAnchorPos(new Vector2(-1058, -468), 3f).SetEase(Ease.OutSine).WaitForCompletion();
+            yield return new WaitForSeconds(1f);
+            MoveFoeOffScreen(image);
+        }
+        initialAnimationPlayed = true;
+    }
+
+    private IEnumerator MoveTrainerOffScreen(Image image)
+    {
+        
+        image.sprite = trainer2;
+        PlayEnterAnimation();
+        
+        float halfwayDuration = 1.5f; 
+        float endX = -1250f;
+
+        
+        Tween moveTween = image.rectTransform.DOAnchorPos(new Vector2(endX, image.rectTransform.anchoredPosition.y), 3f).SetEase(Ease.InOutSine);
+
+        
+        yield return new WaitForSeconds(halfwayDuration);
+        image.sprite = trainer3;
+
+        
+        yield return new WaitForSeconds(halfwayDuration);
+    }
+
+    private void MoveFoeOffScreen(Image image)
+    {
+        if (isPlayerUnit) return;
+        this.image.DOFade(1f, 0.5f);
+        
+        float endX = -150f;
+
+        
+        Tween moveTween = image.rectTransform.DOAnchorPos(new Vector2(endX, image.rectTransform.anchoredPosition.y), 2f).SetEase(Ease.InOutSine);
+    }
+
+
+
     public void PlayEnterAnimation()
     {
+        if (!isPlayerUnit) return;
         image.sprite = Pokemon.Base.BackSprite;
         image.DOFade(1f, 0);
         if (isPlayerUnit)
@@ -94,7 +219,7 @@ public class BattleUnit : MonoBehaviour
         {
             image.transform.localPosition = new Vector3(-110, originalPos.y);
         }
-        float duration = 1.5f;
+        float duration = initialAnimationPlayed ? 1.5f : 3f;
         float rotation = 0.4f;
         float rotationSpeed = isPlayerUnit ? -360f : 360f;
 
@@ -104,7 +229,7 @@ public class BattleUnit : MonoBehaviour
             .SetEase(Ease.Linear);
 
 
-        var moveTween = rectTransform.DOAnchorPos3D(originalPos, duration).OnComplete(() =>
+        var moveTween = rectTransform.DOAnchorPos3D(new Vector2(-300, originalPos.y), duration).OnComplete(() =>
         {
 
             rotationTween.Kill();
@@ -125,13 +250,13 @@ public class BattleUnit : MonoBehaviour
         var sequence = DOTween.Sequence();
         if (isPlayerUnit)
         {
-            sequence.Append(image.transform.DOLocalMoveX(originalPos.x + 50f, 0.25f));
+            sequence.Append(image.transform.DOLocalMoveX(-300 + 50f, 0.25f));
         }
         else
         {
             sequence.Append(image.transform.DOLocalMoveX(originalPos.x - 50f, 0.25f));
         }
-        sequence.Append(image.transform.DOLocalMoveX(originalPos.x, 0.25f));
+        sequence.Append(image.transform.DOLocalMoveX(isPlayerUnit ? -300 : originalPos.x, 0.25f));
     }
     public void PlayFaintAnimation()
     {

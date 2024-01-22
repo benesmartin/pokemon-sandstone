@@ -7,6 +7,14 @@ TagManager:
   - House
   - CategoryButton
   - ItemButton
+  - Map
+  - PlayerPokemonGUI
+  - FoePokemonGUI
+  - Professor
+  - ProfessorBall
+  - NameInput
+  - ProfScreen
+  - Transition
   layers:
   - Default
   - TransparentFX
@@ -15,9 +23,11 @@ TagManager:
   - Water
   - UI
   - 
-  - 
+  - Foreground
   - Solid Objects
   - LongGrass
+  - Interactable
+  - Portal
   - 
   - 
   - 
@@ -37,9 +47,7 @@ TagManager:
   - 
   - 
   - 
-  - 
-  - 
-  - 
+  - debug
   m_SortingLayers:
   - name: Default
     uniqueID: 0
@@ -47,12 +55,21 @@ TagManager:
   - name: Background
     uniqueID: 1626377233
     locked: 0
+  - name: Background 2
+    uniqueID: 130657197
+    locked: 0
   - name: Foreground
     uniqueID: 1473886053
+    locked: 0
+  - name: Foreground 2
+    uniqueID: 2276412071
     locked: 0
   - name: Buildings
     uniqueID: 1347577353
     locked: 0
   - name: Character
     uniqueID: 400836021
+    locked: 0
+  - name: Debug Screen
+    uniqueID: 3365316803
     locked: 0

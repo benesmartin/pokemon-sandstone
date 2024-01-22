@@ -4117,7 +4117,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Game by martins & Pavka
+  m_text: Game by Martin & Pavka
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 6456ef83c06d7b044b2e3565b421b6a7, type: 2}
   m_sharedMaterial: {fileID: 2183360775377112329, guid: 6456ef83c06d7b044b2e3565b421b6a7, type: 2}
@@ -4144,7 +4144,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 28.95
+  m_fontSize: 29.15
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
