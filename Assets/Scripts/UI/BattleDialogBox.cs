@@ -15,9 +15,27 @@ public class BattleDialogBox : MonoBehaviour
     public event Action DialogCompleted;
 
     private Coroutine typeDialogCoroutine;
+    private string dialog;
+    public bool instantComplete = false;
+
+    public void CompleteDialogText()
+    {
+        if (isTyping)
+        {
+            if (typeDialogCoroutine != null)
+            {
+                StopCoroutine(typeDialogCoroutine);
+            }
+
+            dialogText.text = dialog;
+            isTyping = false;
+            instantComplete = true;
+        }
+    }
 
     public void TypeDialog(string dialog, bool allowSkipping = true)
     {
+        this.dialog = dialog;
         if (isTyping && allowSkipping)
         {
             StopCoroutine(typeDialogCoroutine);
@@ -30,6 +48,7 @@ public class BattleDialogBox : MonoBehaviour
             typeDialogCoroutine = StartCoroutine(TypeDialogCoroutine(dialog));
         }
     }
+
 
     private IEnumerator TypeDialogCoroutine(string dialog)
     {

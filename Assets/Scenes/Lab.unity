@@ -154,8 +154,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   sceneToLoad: Game
-  x: -62
-  y: 4
+  x: -72
+  y: 15
 --- !u!61 &153058344
 BoxCollider2D:
   m_ObjectHideFlags: 0

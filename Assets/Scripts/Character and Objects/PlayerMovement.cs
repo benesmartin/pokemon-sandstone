@@ -22,7 +22,7 @@ public class PlayerMovement : MonoBehaviour
     public Animator animator;
     private Vector2 input;
     bool isMoving = false;
-    float currentSpeed = 0f;
+    public float currentSpeed = 0f;
     public float lastHorizontal = 0f;
     public float lastVertical = -1f;
     public LayerMask solidObjectsLayer;
@@ -40,6 +40,7 @@ public class PlayerMovement : MonoBehaviour
     public float PosY = 0;
     private bool isRunning = false;
     private bool isBiking = false;
+    public bool isPaused = false;
     public static PlayerMovement Instance { get; private set; }
 
     private void Awake()
@@ -83,7 +84,7 @@ public class PlayerMovement : MonoBehaviour
     {
         foreach (var buttonName in buttonNames)
         {
-            if (Input.GetKey(buttonName))
+            if (Input.GetKeyDown(buttonName))
             {
                 Debug.Log("Pressed: " + buttonName);
             }
@@ -165,8 +166,10 @@ public class PlayerMovement : MonoBehaviour
     }
     private void HandleMovement()
     {
-        if (!isMoving && !isCutscenePlaying && !isNPCTalking && !PauseMenu.GameIsPaused && !isTransitioning)
+        if (!isPaused && !isMoving && !isCutscenePlaying && !isNPCTalking && !PauseMenu.Instance.GameIsPaused && !isTransitioning)
         {
+
+            //Debug.Log("Can move");
             Vector2 input = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
 
             
@@ -274,7 +277,7 @@ public class PlayerMovement : MonoBehaviour
         if (input != Vector2.zero)
         {
             
-            currentSpeed = DetermineSpeed();
+            currentSpeed = isPaused ? 0 : DetermineSpeed();
             Debug.Log($"Current speed: {currentSpeed}");
             UpdateAnimatorForMovement(input);
             var targetPos = transform.position + new Vector3(input.x, input.y, 0);
@@ -375,7 +378,21 @@ public class PlayerMovement : MonoBehaviour
                 isTransitioning = true;
                 animator.SetFloat("Speed", 0f);
                 SaveCharacterPosition();
-                transition.SetActive(true);
+                if (transition == null)
+                {
+                    transition = GameObject.FindWithTag("Transition");
+                    Debug.Log(transition == null ? "Transition object not found." : "Transition object found.");
+                }
+
+                if (transition != null)
+                {
+                    transition.SetActive(true);
+                }
+                else
+                {
+                    Debug.LogError("Transition object is null when trying to activate.");
+                }
+
                 video.Play();
                 video.loopPointReached += CheckOver;
             }

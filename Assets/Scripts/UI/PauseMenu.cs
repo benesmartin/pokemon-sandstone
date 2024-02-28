@@ -9,29 +9,45 @@ using System;
 
 public class PauseMenu : MonoBehaviour
 {
-    public static bool GameIsPaused = false;
+    public bool GameIsPaused = false;
     [SerializeField] GameObject pauseMenuUI;
     private GameObject selectedPokemonButton = null;
     private Pokemon selectedPokemon = null;
     [SerializeField] GameObject[] pokemonPartyButtons;
     [SerializeField] GameObject cancelButton;
     [SerializeField] GameObject firstButton;
+    [SerializeField] GameObject firsttButton;
     [SerializeField] GameObject[] categoryButtons;
     [SerializeField] GameObject dialogBox;
     [SerializeField] GameObject pokedexButton;
+    [SerializeField] TextMeshProUGUI title;
+    [SerializeField] GameObject partyScreen;
+    [SerializeField] GameObject bagButton;
+    [SerializeField] GameObject partyButton;
+    private EventSystem eventSystem;   
     private float timeSinceLastKeyPress = 0.0f;
     private float debounceTime = 0.5f; 
     public bool isInBag = false;
     public List<Button> buttonsList = new();
+    public bool isInSubmenu = false;
     public static PauseMenu Instance { get; private set; }
     private void Awake()
     {
+        eventSystem = UIFocusManager.Instance.eventSystem;
+
         if (Instance == null)
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
         }
     }
+
+
+
+    public void SetSubmenu(bool value)
+    {
+        isInSubmenu = value;
+    }   
     void Update()
     {
         timeSinceLastKeyPress += Time.deltaTime;
@@ -42,7 +58,7 @@ public class PauseMenu : MonoBehaviour
             PrintInventory();
             timeSinceLastKeyPress = 0.0f; 
         }
-        if (Input.GetKeyDown(KeyCode.Escape) || Input.GetButtonDown("Menu"))
+        if ((Input.GetKeyDown(KeyCode.Escape) || Input.GetButtonDown("Menu")) && !isInSubmenu)
         {
             if (GameIsPaused)
             {
@@ -58,6 +74,14 @@ public class PauseMenu : MonoBehaviour
         {
             PrintStorageSystem();
         }
+        if (Input.GetKeyDown(KeyCode.L))
+        {
+            Pokemon randomPokemon = MapArea.Instance.GetRandomWildPokemon();
+            randomPokemon.Init();
+            randomPokemon.ID = Guid.NewGuid();
+            PokemonParty.Instance.AddPokemon(randomPokemon);
+        }
+
     }
     public void CreateAFewItemsFromEachCategory()
     {
@@ -104,16 +128,16 @@ public class PauseMenu : MonoBehaviour
     }
     void ResumeGame()
     {
-        pauseMenuUI.SetActive(false);
-        Time.timeScale = 1f;
+        pauseMenuUI.SetActive(false);   
         GameIsPaused = false;
+        PlayerMovement.Instance.isPaused = false;
     }
     void PauseGame()
     {
         pauseMenuUI.SetActive(true);
         GameIsPaused = true;
-        EventSystem.current.SetSelectedGameObject(pokedexButton);
-        Time.timeScale = 0f;
+        eventSystem.SetSelectedGameObject(pokedexButton);
+        PlayerMovement.Instance.isPaused = true;
         
     }
     public void ReturnToMenu()
@@ -133,8 +157,27 @@ public class PauseMenu : MonoBehaviour
     }
     public void ShowParty()
     {
-        if (PokemonParty.Instance.Pokemons.Count > 0) SetPokemonPartyButtons(PokemonParty.Instance.Pokemons);
+        if (PokemonParty.Instance.Pokemons.Count > 0) 
+        {
+            SetPokemonPartyButtons(PokemonParty.Instance.Pokemons);
+            partyScreen.SetActive(true);
+            eventSystem.SetSelectedGameObject(pokemonPartyButtons[0]);
+        }
+        else
+        {
+            Debug.Log("Party is empty!");
+            StartCoroutine(AlertParty(1f));
+        }
     }
+    private IEnumerator AlertParty(float seconds)
+    {
+        Debug.Log("Coroutine started: Setting text to 'Party is empty!'");
+        title.text = "Party is empty!";
+        yield return new WaitForSecondsRealtime(seconds);
+        Debug.Log("Coroutine resumed: Setting text to 'PAUSED'");
+        title.text = "PAUSED";
+    }
+
     private void SetPokemonPartyButtons(List<Pokemon> pokemons)
     {
         foreach (var button in pokemonPartyButtons)
@@ -231,16 +274,13 @@ public class PauseMenu : MonoBehaviour
             Navigation nav = new Navigation();
             nav.mode = Navigation.Mode.Explicit;
 
-            // Set up navigation for up direction
             nav.selectOnUp = i >= 2 ? activeButtons[i - 2].GetComponent<Button>() : null;
 
-            // Special handling when there's only one button or setting up navigation for the last two buttons
             if (activeButtons.Count == 1 || i >= activeButtons.Count - 2)
                 nav.selectOnDown = cancelButton.GetComponent<Button>();
             else if (i + 2 < activeButtons.Count)
                 nav.selectOnDown = activeButtons[i + 2].GetComponent<Button>();
 
-            // Handling navigation for right and left directions
             if (i % 2 == 0)
                 nav.selectOnRight = (i + 1 < activeButtons.Count) ? activeButtons[i + 1].GetComponent<Button>() : null;
             else
@@ -249,11 +289,9 @@ public class PauseMenu : MonoBehaviour
             activeButtons[i].GetComponent<Button>().navigation = nav;
         }
 
-        // Setup navigation for the cancel button
         Navigation cancelNav = new Navigation();
         cancelNav.mode = Navigation.Mode.Explicit;
 
-        // If there's only one button, set it to navigate up from the cancel button
         if (activeButtons.Count > 0)
             cancelNav.selectOnUp = activeButtons[activeButtons.Count - 1].GetComponent<Button>();
 
@@ -332,19 +370,27 @@ public class PauseMenu : MonoBehaviour
     }
     private void ClearButtonsExceptFirst()
     {
-        Transform parentTransform = firstButton.transform.parent;
+        Transform parentTransform = firsttButton.transform.parent;
 
         
         for (int i = parentTransform.childCount - 1; i >= 0; i--)
         {
             Transform child = parentTransform.GetChild(i);
-            if (child.gameObject != firstButton.gameObject)
+            if (child.gameObject != firsttButton.gameObject)
             {
                 Destroy(child.gameObject);
             }
         }
     }
-
+    public void OnCancelBagButton()
+    {
+        ExecuteEvents.Execute<ISelectHandler>(bagButton, new BaseEventData(eventSystem), ExecuteEvents.selectHandler);
+    }
+    public void OpenInventory()
+    {
+        eventSystem.SetSelectedGameObject(categoryButtons[0]);
+        OnBagButton("Item");
+    }
     public void OnBagButton(string categoryName)
     {
         ClearButtonsExceptFirst();
@@ -395,7 +441,7 @@ public class PauseMenu : MonoBehaviour
 
     private void SetItemButtons(List<Item> items, int categoryIndex)
     {
-        Button firstButton = this.firstButton.GetComponent<Button>();
+        Button firstButton = this.firsttButton.GetComponent<Button>();
         float yPosition = 75f;
         float yDecrement = 155f;
 

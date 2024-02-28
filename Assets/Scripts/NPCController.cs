@@ -17,7 +17,10 @@ public class NPCController : MonoBehaviour, Interactable
     public bool isSmallProfessor = false; 
     public GameObject profScreen; 
     private Fader fader;
-    [SerializeField] public Pokemon heldItem = null; 
+    [SerializeField] public Pokemon heldItem = null;
+    private float skipCooldown = 0f;
+
+
 
     private List<string> dialogues = new List<string>(); 
 
@@ -35,6 +38,52 @@ public class NPCController : MonoBehaviour, Interactable
             StartCoroutine(InvokeDialog()); 
         }
     }
+    void Update()
+    {
+        var dialogBoxComponent = dialogBox.GetComponent<BattleDialogBox>();
+        if (skipCooldown > 0)
+        {
+            skipCooldown -= Time.deltaTime;
+        }
+        else
+        {
+            if (Input.GetButtonDown("RB"))
+            {
+                if (isProfessor)
+                {
+                    StartCoroutine(DestroyProfessor());
+
+
+
+                }
+            }
+            else if (Input.GetButtonDown("Submit") && dialogBoxComponent.isTyping)
+            {
+                dialogBoxComponent.CompleteDialogText();
+                skipCooldown = 0.3f;
+            }
+        }
+    }
+    private IEnumerator DestroyProfessor()
+    {
+        var prof = profScreen ? profScreen : GameObject.FindWithTag("ProfScreen");
+        yield return fader.FadeIn(0.5f);
+        SceneManager.LoadSceneAsync("House");
+        StartCoroutine(fader.FadeOut(0.5f));
+        Destroy(prof);
+        isTalking = false;
+        dialogBox.SetActive(false);
+    }
+
+
+
+
+
+
+
+
+
+
     private void ReadDialoguesFromFile()
     {
         if (dialogueTextFile != null)
@@ -85,6 +134,7 @@ public class NPCController : MonoBehaviour, Interactable
             }
             dialogBox.GetComponent<BattleDialogBox>().TypeDialog(dialogue);
             yield return StartCoroutine(WaitForDialogueBox());
+            dialogBox.GetComponent<BattleDialogBox>().instantComplete = false;
         }
         if (isProfessor)
         {
@@ -98,16 +148,17 @@ public class NPCController : MonoBehaviour, Interactable
 
             
             Destroy(prof);
-            CharacterValueManager.Instance.SpokeToProfessor = true;
 
             
             
         }
-        if (isSmallProfessor)
+        if (isSmallProfessor && !CharacterValueManager.Instance.SpokeToProfessor)
         {
             Debug.Log("Added " + heldItem.Base.Name + " to the party.");
-            PokemonParty.Instance.AddPokemonV(heldItem); 
-            
+            PokemonParty.Instance.AddPokemonV(heldItem);
+            PokedexManager.Instance.AddPokemonAsCaught(heldItem.Base.PokedexNumber);
+            CharacterValueManager.Instance.SpokeToProfessor = true;
+
         }
         isTalking = false;
         dialogBox.SetActive(false);
@@ -150,13 +201,14 @@ public class NPCController : MonoBehaviour, Interactable
 
     private IEnumerator WaitForDialogueBox()
     {
-        
-        while (dialogBox.GetComponent<BattleDialogBox>().isTyping)
-        {
-            yield return null;
-        }
+        BattleDialogBox battleDialogBox = dialogBox.GetComponent<BattleDialogBox>();
 
-        
-        yield return new WaitUntil(() => Input.GetKeyDown(KeyCode.F3) || Input.GetButtonDown("Submit"));
+        yield return new WaitUntil(() => !battleDialogBox.isTyping);
+
+        yield return new WaitUntil(() => skipCooldown <= 0 && (Input.GetKeyDown(KeyCode.A) || Input.GetButtonDown("Submit")));
     }
+
+
+
+
 }

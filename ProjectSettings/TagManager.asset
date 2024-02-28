@@ -15,6 +15,9 @@ TagManager:
   - NameInput
   - ProfScreen
   - Transition
+  - PokedexButton
+  - PokemonDisplay
+  - EvolutionCanvas
   layers:
   - Default
   - TransparentFX

@@ -23,7 +23,8 @@ public class MapArea : MonoBehaviour
     public Pokemon GetRandomWildPokemon()
     {
         var random = Random.Range(0, wildPokemons.Count);
-        var wildPokemon = wildPokemons[random];
+        var wildPokemonTemplate = wildPokemons[random];
+        var wildPokemon = wildPokemonTemplate.Clone();
         wildPokemon.Init();
         return wildPokemon;
     }

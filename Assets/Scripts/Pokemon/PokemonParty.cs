@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -22,30 +23,51 @@ public class PokemonParty : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
-            storageSystem = new List<Pokemon>(); 
+            storageSystem = new List<Pokemon>();
         }
         else if (Instance != this)
         {
-            Destroy(gameObject); 
+            Destroy(gameObject);
         }
     }
 
 
     private void Start()
     {
-        if (Instance == this) 
+        if (Instance == this)
         {
-                foreach (var pokemon in pokemons)
-                {
-                    pokemon.Init();
-                }
-            
-                foreach (var pokemon in enemyPokemons)
-                {
-                    pokemon.Init();
-                }
-            
+            foreach (var pokemon in pokemons)
+            {
+                pokemon.Init();
+                PokedexManager.Instance.AddPokemonAsCaught(pokemon.Base.PokedexNumber);
+            }
+
+            foreach (var pokemon in enemyPokemons)
+            {
+                pokemon.Init();
+            }
+
         }
+    }
+    public IEnumerator CheckForEvolutions(Action onEvolutionComplete)
+    {
+        foreach (var pokemon in pokemons)
+        {
+            var evolution = pokemon.CheckForEvolution();
+            Debug.Log("Checking for evolution of " + pokemon.Base.Name);
+            if (evolution != null)
+            {
+                Debug.Log(pokemon.Base.Name + " evolved into " + evolution.EvolvedForm.Name);
+                var evolutionScreen = EvolutionScreenManager.Instance.evolutionScreen;
+                evolutionScreen.SetActive(true);
+                EvolutionScreen.Instance.Show(pokemon, evolution.EvolvedForm);
+                pokemon.Evolve(evolution);
+                PokedexManager.Instance.AddPokemonAsCaught(pokemon.Base.PokedexNumber);
+                yield return new WaitUntil(() => EvolutionScreen.Instance.IsFinished);
+            }
+        }
+        onEvolutionComplete?.Invoke();
+
     }
 
     public Pokemon GetHealthyPokemon()

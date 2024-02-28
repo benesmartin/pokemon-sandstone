@@ -12,4 +12,12 @@ public class Move
         Base = pBase;
         PP = pBase.PP;
     }
+    public Move Clone()
+    {
+        Move clone = new Move(Base)
+        {
+            PP = PP
+        };
+        return clone;
+    }
 }
