@@ -40,6 +40,15 @@ public class Inventory : MonoBehaviour
         return item;
     }
 
+    public int GetItemCount(string itemName)
+    {
+        if (items.TryGetValue(itemName, out Item item))
+        {
+            return item.Count;
+        }
+        return 0;
+    }
+
     public List<Item> GetItemsByCategory(ItemCategory category)
     {
         var itemsInCategory = new List<Item>();
@@ -95,6 +104,28 @@ public class Inventory : MonoBehaviour
         foreach (var kvp in items)
         {
             Debug.Log($"\n-> {kvp.Key} x{kvp.Value.Count}");
+        }
+    }
+    public bool RemoveItem(string itemName, int count = 1)
+    {
+        if (items.TryGetValue(itemName, out Item item))
+        {
+            if (item.Count > count)
+            {
+                item.AddCount(-count);
+                Debug.Log($"Decreased {itemName} count to {item.Count}");
+            }
+            else
+            {
+                items.Remove(itemName);
+                Debug.Log($"Removed {itemName} from inventory");
+            }
+            return true;
+        }
+        else
+        {
+            Debug.LogWarning($"Item {itemName} not found in inventory.");
+            return false;
         }
     }
 

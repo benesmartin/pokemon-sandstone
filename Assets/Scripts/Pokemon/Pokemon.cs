@@ -14,7 +14,7 @@ public class Pokemon
     public Dictionary<Stat, int> StatBoosts { get; private set; }
     public Guid ID { get => id; set { id = value; } }
     private Guid id = Guid.Empty;
-    public int Level { get => level;}
+    public int Level { get => level; }
     public int Exp { get; set; }
     public int HP { get; set; }
     public Condition Status { get; set; }
@@ -70,6 +70,12 @@ public class Pokemon
     {
         HP = MaxHP;
     }
+
+    public void Heal(int amount)
+    {
+        HP = Mathf.Clamp(HP + amount, 0, MaxHP);
+    }
+
     public bool CheckForLevelUp()
     {
         if (Exp > Base.GetExpForLevel(Level + 1))
@@ -87,6 +93,11 @@ public class Pokemon
         Status = ConditionsDB.Conditions[conditionId];
         Status?.OnStart?.Invoke(this);
         StatusChanges.Enqueue($"{Base.Name} {Status.StartMessage}");
+    }
+
+    public ConditionID GetStatus(Condition condition)
+    {
+        return ConditionsDB.Conditions.FirstOrDefault(x => x.Value == condition).Key;
     }
 
     public Evolution CheckForEvolution()
@@ -137,7 +148,7 @@ public class Pokemon
         if (move.Base.Power == 0)
         {
             Debug.Log($"{attacker.Base.Name} used {move.Base.Name} on {Base.Name}, but it had no effect!");
-            return; // Exit the function early
+            return;
         }
         float attack = move.Base.IsSpecial ? attacker.SpAttack : attacker.Attack;
         float defense = move.Base.IsSpecial ? SpDefense : Defense;
@@ -169,7 +180,11 @@ public class Pokemon
     }
     public void OnAfterTurn()
     {
-        Status?.OnAfterTurn?.Invoke(this);
+        if (Status?.OnAfterTurn != null)
+        {
+            BattleSystem.Instance.FlashAfter(this);
+            Status.OnAfterTurn.Invoke(this);
+        }
     }
     public bool OnBeforeMove()
     {

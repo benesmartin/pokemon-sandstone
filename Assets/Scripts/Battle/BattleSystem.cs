@@ -20,6 +20,7 @@ public class BattleSystem : MonoBehaviour
     [SerializeField] private GameObject enemyHud;
     [SerializeField] private GameObject dialogBox;
     [SerializeField] private GameObject[] moveButtons;
+    [SerializeField] private GameObject[] partyButtons;
     [SerializeField] private GameObject pokemonParty;
     [SerializeField] private GameObject pokemonPartyDialogBox;
     [SerializeField] private GameObject cancelButton;
@@ -37,6 +38,9 @@ public class BattleSystem : MonoBehaviour
     public bool isItTrue = false;
     public bool IsPlayerTurn;
     public bool IsFaintSwitching = false;
+    public bool isSwitching = false;
+    public bool isApplyingItem = false;
+    public bool shouldSkipAnimation = true;
     public int Shakes = 99;
     public float catchRate;
     public List<Pokemon> NPCPokemons = new List<Pokemon>();
@@ -122,7 +126,7 @@ public class BattleSystem : MonoBehaviour
         playerUnit.Setup(playerParty.GetHealthyPokemon());
         enemyUnit.Setup(enemyPokemon);
         UpdateHudData();
-        StartCoroutine(InitialDialog());
+        StartCoroutine(InitialDialog(shouldSkipAnimation));
     }
 
     float GetMoveEffectiveness(Move move, PokemonType opponentPrimaryType, PokemonType opponentSecondaryType)
@@ -132,10 +136,18 @@ public class BattleSystem : MonoBehaviour
 
         return effectivenessPrimary * effectivenessSecondary;
     }
-    private IEnumerator InitialDialog()
+    private IEnumerator InitialDialog(bool skipAnimation = false)
     {
         MainBattleButtons.Instance.HideMainButtons();
         PokedexManager.Instance.AddPokemonAsSeen(enemyPokemon.Base.PokedexNumber);
+
+        if (skipAnimation)
+        {
+            dialogBox.GetComponent<BattleDialogBox>().SetDialogText("Finishing up...");
+            PlayerAction();
+            yield break;
+        }
+
         Debug.Log($"{enemyPokemon.Base.Name} was added as seen.");
 
         GameObject[] playerPokemonGUI = GameObject.FindGameObjectsWithTag("PlayerPokemonGUI");
@@ -155,25 +167,20 @@ public class BattleSystem : MonoBehaviour
             dialogBox.SetActive(false);
             yield return new WaitForSeconds(3f);
             dialogBox.SetActive(true);
-            dialogBox.GetComponent<BattleDialogBox>().TypeDialog("A wild " + enemyUnit.Pokemon.Base.Name + " appeared!");
-
-            yield return StartCoroutine(WaitForDialogueBox());
+            yield return TypeDialog("A wild " + enemyUnit.Pokemon.Base.Name + " appeared!");
             foreach (var item in enemyPokemonGUI)
             {
                 item.GetComponent<Image>().DOFade(1, 0.5f);
                 item.GetComponent<TextMeshProUGUI>().DOFade(1, 0.5f);
             }
             yield return new WaitForSeconds(1f);
-            dialogBox.GetComponent<BattleDialogBox>().TypeDialog("Go,  " + playerUnit.Pokemon.Base.Name + "!");
-        } 
+            yield return TypeDialog("Go,  " + playerUnit.Pokemon.Base.Name + "!");
+        }
         else
         {
-            dialogBox.GetComponent<BattleDialogBox>().TypeDialog("You are challenged by Trainer Girl" + "!");
-            yield return StartCoroutine(WaitForDialogueBox());
+            yield return TypeDialog("You are challenged by Trainer Girl" + "!");
             yield return new WaitForSeconds(1.5f);
-            dialogBox.GetComponent<BattleDialogBox>().TypeDialog("Trainer Girl sent out " + enemyUnit.Pokemon.Base.Name +  "!");
-            
-            yield return StartCoroutine(WaitForDialogueBox());
+            yield return TypeDialog("Trainer Girl sent out " + enemyUnit.Pokemon.Base.Name + "!");
             yield return new WaitForSeconds(1f);
             foreach (var item in enemyPokemonGUI)
             {
@@ -181,9 +188,8 @@ public class BattleSystem : MonoBehaviour
                 item.GetComponent<TextMeshProUGUI>().DOFade(1, 0.5f);
             }
             yield return new WaitForSeconds(0.75f);
-            dialogBox.GetComponent<BattleDialogBox>().TypeDialog("Go,  " + playerUnit.Pokemon.Base.Name + "!");
+            yield return TypeDialog("Go,  " + playerUnit.Pokemon.Base.Name + "!");
         }
-        yield return new WaitForSeconds(2f);
         PlayerAction();
         foreach (var item in playerPokemonGUI)
         {
@@ -192,6 +198,14 @@ public class BattleSystem : MonoBehaviour
         }
         yield return StartCoroutine(WaitForDialogueBox());
         yield return new WaitForSeconds(1f);
+    }
+
+
+
+    private IEnumerator TypeDialog(string message)
+    {
+        dialogBox.GetComponent<BattleDialogBox>().TypeDialog(message);
+        yield return StartCoroutine(WaitForDialogueBox());
     }
     private void UpdateHudData()
     {
@@ -221,9 +235,6 @@ public class BattleSystem : MonoBehaviour
     private float GetCurrentCatchRateInPercent(Pokemon targetPokemon, Pokeball pokeball)
     {
         float catchRate = CalculateCatchRate(targetPokemon, pokeball);
-
-        
-        
         float catchRatePercent = Mathf.Max(1, catchRate / 255 * 100);
 
         return catchRatePercent;
@@ -259,8 +270,7 @@ public class BattleSystem : MonoBehaviour
             case 3: message = "Gah! It was so close, too!"; break;
             case 4:
                 message = $"Gotcha! {enemyUnit.Pokemon.Base.Name} was caught!";
-                dialogBox.GetComponent<BattleDialogBox>().TypeDialog(message);
-                yield return StartCoroutine(WaitForDialogueBox());
+                yield return TypeDialog(message);
                 yield return new WaitForSeconds(1f);
                 yield return StartCoroutine(AddPokemonToPokedex(enemyUnit.Pokemon));
                 yield return new WaitForSeconds(1f);
@@ -284,15 +294,13 @@ public class BattleSystem : MonoBehaviour
 
     private IEnumerator AddPokemonToParty(Pokemon caughtPokemon)
     {
-        dialogBox.GetComponent<BattleDialogBox>().TypeDialog(PokemonParty.Instance.AddPokemon(caughtPokemon));
-        yield return WaitForDialogueBox();
+        yield return TypeDialog(PokemonParty.Instance.AddPokemon(caughtPokemon));
     }
 
     private IEnumerator AddPokemonToPokedex(Pokemon caughtPokemon)
     {
         PokedexManager.Instance.AddPokemonAsCaught(caughtPokemon.Base.PokedexNumber);
-        dialogBox.GetComponent<BattleDialogBox>().TypeDialog($"{caughtPokemon.Base.Name}'s data was added to the PokeDex!");
-        yield return WaitForDialogueBox();
+        yield return TypeDialog($"{caughtPokemon.Base.Name}'s data was added to the PokeDex!");
     }
 
     private void SetMoveButtons(List<Move> moves)
@@ -320,21 +328,92 @@ public class BattleSystem : MonoBehaviour
         IsPlayerTurn = IsFaintSwitching;
         StartCoroutine(SwitchPokemonRoutine(index));
     }
+    public void PartyPokemonAction(int index)
+    {
+        Debug.Log($"is Switching: {isSwitching}, is Applying Item: {isApplyingItem}");
+        if (isSwitching)
+        {
+            isApplyingItem = false;
+            isSwitching = false;
+            isItTrue = true;
+            IsPlayerTurn = IsFaintSwitching;
+            StartCoroutine(SwitchPokemonRoutine(index));
+        }
+        else if (isApplyingItem)
+        {
+            isSwitching = false;
+            isApplyingItem = false;
+            isItTrue = true;
+            StartCoroutine(UseItemRoutine(index, MainBattleButtons.Instance.currentItem));
+        }
+    }
+    public IEnumerator UseItemRoutine(int index, Item item)
+    {
+        if (item is Pokeball)
+        {
+            yield break;
+        }
+        else if (item.Category == ItemCategory.Potion)
+        {
+            yield return UsePotion(index, item as Potion);
+        }
+
+    }
+    private IEnumerator UsePotion(int index, Potion item)
+    {
+        Pokemon pokemon = playerParty.Pokemons[index];
+        Debug.Log($"Using {item.Name} on {pokemon.Base.Name}.");
+        Debug.Log($"HP before: {pokemon.HP}");
+        if (pokemon.HP == pokemon.MaxHP)
+        {
+            StartCoroutine(MainBattleButtons.Instance.TypeDialog("It won't have any effect.", false));
+            isApplyingItem = true;
+            yield break;
+        }
+        if ((item.Name == "Revive" || item.Name == "Max Revive") && pokemon.HP > 0)
+        {
+            StartCoroutine(MainBattleButtons.Instance.TypeDialog("It won't have any effect.", false));
+            isApplyingItem = true;
+            yield break;
+        }
+        if (pokemon != playerUnit.Pokemon)
+        {
+            dialogBox.GetComponent<BattleDialogBox>().SetDialogText("Waiting for opponent...");
+            item.Use(pokemon);
+            Inventory.Instance.RemoveItem(item.Name);
+            yield return MainBattleButtons.Instance.TypeDialog($"You used {item.Name} on {pokemon.Base.Name}.", true);
+
+            var slider = partyButtons[index].GetComponent<PartyButtonManager>().GetSlider();
+            var text = partyButtons[index].GetComponent<PartyButtonManager>().GetText();
+            var image = partyButtons[index].GetComponent<PartyButtonManager>().GetImage();
+            yield return StartCoroutine(playerHud.GetComponent<StatGUI>().UpdateHP(pokemon, slider, text, image));
+            yield return new WaitForSeconds(2f);
+            MainBattleButtons.Instance.HidePartyScreen();
+            StartCoroutine(EnemyMoveRoutine());
+            yield break;
+        }
+        MainBattleButtons.Instance.HidePartyScreen();
+        item.Use(pokemon);
+        Inventory.Instance.RemoveItem(item.Name);
+        yield return TypeDialog($"You used {item.Name} on {pokemon.Base.Name}.");
+
+        yield return StartCoroutine(playerHud.GetComponent<StatGUI>().UpdateHP(pokemon));
+
+        StartCoroutine(EnemyMoveRoutine());
+    }
     public IEnumerator SwitchPokemonRoutine(int index)
     {
         var selectedPokemon = playerParty.Pokemons[index];
 
         if (selectedPokemon.HP <= 0)
         {
-            pokemonPartyDialogBox.GetComponent<BattleDialogBox>().TypeDialog("You can't send out a fainted Pokemon!");
-            yield return StartCoroutine(WaitForDialogueBox());
+            yield return TypeDialog("You can't send out a fainted Pokemon!");
             yield break;
         }
 
         if (selectedPokemon == playerUnit.Pokemon)
         {
-            pokemonPartyDialogBox.GetComponent<BattleDialogBox>().TypeDialog("You can't switch to the same Pokemon!");
-            yield return StartCoroutine(WaitForDialogueBox());
+            yield return TypeDialog("You can't switch to the same Pokemon!");
             yield break;
         }
 
@@ -342,10 +421,7 @@ public class BattleSystem : MonoBehaviour
         playerHud.GetComponent<StatGUI>().SetData(selectedPokemon, true);
         pokemonParty.SetActive(false);
         MainBattleButtons.Instance.isInMoves = false;
-        dialogBox.GetComponent<BattleDialogBox>().TypeDialog($"Go, {selectedPokemon.Base.Name}!");
-
-
-        yield return StartCoroutine(WaitForDialogueBox());
+        yield return TypeDialog($"Go, {selectedPokemon.Base.Name}!");
 
 
         yield return new WaitForSeconds(2.0f);
@@ -370,9 +446,10 @@ public class BattleSystem : MonoBehaviour
         MainBattleButtons.Instance.SetPokemonPartyButtons(PokemonParty.Instance.Pokemons);
         yield return new WaitForSeconds(1f);
         IsFaintSwitching = true;
+        isSwitching = true;
         cancelButton.SetActive(false);
         OpenPokemonPartyScreen();
-        pokemonPartyDialogBox.GetComponent<BattleDialogBox>().TypeDialog("Choose a Pokemon.");
+        MainBattleButtons.Instance.SetDialogParty("Choose a Pokemon.");
         EventSystem.current.SetSelectedGameObject(firstPokemonButton);
     }
     private void OpenPokemonPartyScreen()
@@ -436,7 +513,7 @@ public class BattleSystem : MonoBehaviour
         }
     }
 
-    private Color ColorHex(string v)
+    public Color ColorHex(string v)
     {
         Color color = new Color();
         ColorUtility.TryParseHtmlString(v, out color);
@@ -455,11 +532,11 @@ public class BattleSystem : MonoBehaviour
     {
         if (target == playerUnit)
         {
-            playerHud.GetComponent<StatGUI>().UpdateHP(target.Pokemon);
+            StartCoroutine(playerHud.GetComponent<StatGUI>().UpdateHP(target.Pokemon));
         }
         else if (target == enemyUnit)
         {
-            enemyHud.GetComponent<StatGUI>().UpdateHP(target.Pokemon);
+            StartCoroutine(enemyHud.GetComponent<StatGUI>().UpdateHP(target.Pokemon));
         }
     }
 
@@ -472,31 +549,26 @@ public class BattleSystem : MonoBehaviour
             string playerName = "You";
             int coinsLost = CalculateCoinsLost();
 
-            dialogBox.GetComponent<BattleDialogBox>().TypeDialog($"{playerName} are out of usable Pokemon!");
-            yield return StartCoroutine(WaitForDialogueBox());
+            yield return TypeDialog($"{playerName} are out of usable Pokemon!");
             yield return new WaitForSeconds(1f);
 
             if (!PokemonParty.Instance.IsWildBattle)
             {
-                dialogBox.GetComponent<BattleDialogBox>().TypeDialog($"{playerName} gave {coinsLost} coins to the foe!");
-                yield return StartCoroutine(WaitForDialogueBox());
+                yield return TypeDialog($"{playerName} gave {coinsLost} coins to the foe!");
 
                 yield return new WaitForSeconds(1f);
             }
-            
 
-            dialogBox.GetComponent<BattleDialogBox>().TypeDialog("...");
-            yield return StartCoroutine(WaitForDialogueBox());
+
+            yield return TypeDialog("...");
             yield return new WaitForSeconds(1f);
-            dialogBox.GetComponent<BattleDialogBox>().TypeDialog($"{playerName} blacked out!");
-            yield return StartCoroutine(WaitForDialogueBox());
+            yield return TypeDialog($"{playerName} blacked out!");
             PokemonParty.Instance.HealAllPokemon();
         }
         else
         {
 
-            dialogBox.GetComponent<BattleDialogBox>().TypeDialog("You won!");
-            yield return StartCoroutine(WaitForDialogueBox());
+            yield return TypeDialog("You won!");
         }
         yield return new WaitForSeconds(2f);
         var playerParty = PokemonParty.Instance;
@@ -529,7 +601,7 @@ public class BattleSystem : MonoBehaviour
 
     private int CalculateCoinsLost()
     {
-
+        //placeholder
         return 100;
     }
 
@@ -554,6 +626,43 @@ public class BattleSystem : MonoBehaviour
     {
         StartCoroutine(RunStatusEffects());
     }
+
+    public IEnumerator FlashAfterAnimation(Pokemon pokemon)
+    {
+        var unit = pokemon == playerUnit.Pokemon ? playerUnit : enemyUnit;
+        yield return new WaitForSeconds(1f);
+        StartCoroutine(FlashSpriteWithFade(unit.GetComponent<UnityEngine.UI.Image>(), 1, 0.5f, unit.Pokemon.Status.FlashColor));
+    }
+
+    private IEnumerator FlashSprite(UnityEngine.UI.Image targetImage, int numberOfFlashes, float delay, Color flashColor)
+    {
+        Color originalColor = targetImage.color;
+
+        for (int i = 0; i < numberOfFlashes; i++)
+        {
+            targetImage.color = flashColor;
+            yield return new WaitForSeconds(delay);
+            targetImage.color = originalColor;
+            yield return new WaitForSeconds(delay);
+        }
+    }
+
+    private IEnumerator FlashSpriteWithFade(UnityEngine.UI.Image targetImage, int numberOfFlashes, float delay, Color flashColor)
+    {
+        Color originalColor = targetImage.color;
+
+        for (int i = 0; i < numberOfFlashes; i++)
+        {
+            targetImage.DOColor(flashColor, delay / 2);
+            yield return new WaitForSeconds(delay);
+            targetImage.DOColor(originalColor, delay / 2);
+            yield return new WaitForSeconds(delay);
+        }
+    }
+    public void FlashAfter(Pokemon pokemon)
+    {
+        StartCoroutine(FlashAfterAnimation(pokemon));
+    }
     private IEnumerator RunStatusEffects()
     {
         playerUnit.Pokemon.OnAfterTurn();
@@ -562,7 +671,6 @@ public class BattleSystem : MonoBehaviour
         yield return ShowStatusChanges(enemyUnit.Pokemon);
         UpdateHud(playerUnit);
         UpdateHud(enemyUnit);
-        yield return new WaitForSeconds(1f);
         turnCounter.GetComponent<TextMeshProUGUI>().text = "Turn " + turn;
         turn++;
         UpdateCatchRate();
@@ -571,8 +679,8 @@ public class BattleSystem : MonoBehaviour
 
     public void UpdateCatchRate(int shakes = 5)
     {
-        this.catchRate = GetCurrentCatchRateInPercent(enemyUnit.Pokemon, new StandardPokeball());
-        if (!DebugMenu.Instance.isCatchRate100) DebugMenu.Instance.UpdateDebugInfo("CatchRate", $"{this.catchRate.ToString("0.00")}% ({(shakes == 5 ? "Throw a Pok�Ball to calculate shakes" : shakes.ToString() + " shakes")})");
+        catchRate = GetCurrentCatchRateInPercent(enemyUnit.Pokemon, new StandardPokeball());
+        if (!DebugMenu.Instance.isCatchRate100) DebugMenu.Instance.UpdateDebugInfo("CatchRate", $"{this.catchRate.ToString("0.00")}% ({(shakes == 5 ? "Throw a PokeBall to calculate shakes" : shakes.ToString() + " shakes")})");
         else DebugMenu.Instance.UpdateDebugInfo("CatchRate", $"100% (Shakes: 4x)");
     }
 
@@ -644,8 +752,8 @@ public class BattleSystem : MonoBehaviour
     {
         yield return new WaitForSeconds(1f);
         bool canRunMove = enemyUnit.Pokemon.OnBeforeMove();
+        yield return ShowStatusChanges(enemyUnit.Pokemon);
         if (!canRunMove) {
-            yield return ShowStatusChanges(enemyUnit.Pokemon);
             PlayerAction();
             yield break;
         }
@@ -653,10 +761,8 @@ public class BattleSystem : MonoBehaviour
         yield return new WaitForSeconds(1f);
         int enemyMoveIndex = PokemonParty.Instance.IsWildBattle ? UnityEngine.Random.Range(0, enemyUnit.Pokemon.Moves.Count) : GetMostEffectiveMove(enemyUnit.Pokemon.Moves);
         Move move = enemyUnit.Pokemon.Moves[enemyMoveIndex];
-
-        dialogBox.GetComponent<BattleDialogBox>().TypeDialog($"{enemyUnit.Pokemon.Base.Name} used {move.Base.Name}!");
-
-        yield return StartCoroutine(WaitForDialogueBox());
+        Debug.Log("2. Enemy move: " + move.Base.Name);
+        yield return TypeDialog($"{enemyUnit.Pokemon.Base.Name} used {move.Base.Name}!");
 
         float effectiveness = GetMoveEffectiveness(move, playerUnit.Pokemon.Base.Type1, playerUnit.Pokemon.Base.Type2);
         bool isCritical = false;
@@ -664,27 +770,24 @@ public class BattleSystem : MonoBehaviour
         {
             isCritical = UnityEngine.Random.Range(0, 24) == 0;
             enemyUnit.PlayAttackAnimation();
-            StartCoroutine(FlashSprite(playerUnit.GetComponent<UnityEngine.UI.Image>(), 3, 0.1f));
+            StartCoroutine(FlashSprite(playerUnit.GetComponent<UnityEngine.UI.Image>(), 3, 0.1f, Color.black));
             playerUnit.Pokemon.TakeDamage(move, effectiveness, isCritical, enemyUnit.Pokemon);
             UpdateHud(playerUnit);
         }
 
         yield return new WaitForSeconds(1f);
-
+        Debug.Log("3. Effectiveness: " + effectiveness);
         if(move.Base.Category != MoveCategory.Status) yield return StartCoroutine(ShowEffectivenessMessage(effectiveness, playerUnit.Pokemon.Base.Name));
-        if (isCritical)
+        if (isCritical && move.Base.Category != MoveCategory.Status)
         {
             yield return new WaitForSeconds(1f);
-            dialogBox.GetComponent<BattleDialogBox>().TypeDialog($"A critical hit!");
-
-            yield return StartCoroutine(WaitForDialogueBox());
+            yield return TypeDialog($"A critical hit!");
         }
 
         if (playerUnit.Pokemon.HP <= 0)
         {
             yield return new WaitForSeconds(1f);
-            dialogBox.GetComponent<BattleDialogBox>().TypeDialog($"{playerUnit.Pokemon.Base.Name} fainted!");
-            yield return StartCoroutine(WaitForDialogueBox());
+            yield return TypeDialog($"{playerUnit.Pokemon.Base.Name} fainted!");
             playerUnit.PlayFaintAnimation();
             var nextPokemon = playerParty.GetHealthyPokemon();
             if (nextPokemon != null)
@@ -707,6 +810,12 @@ public class BattleSystem : MonoBehaviour
         var effects = move.Base.Effects;
         if (effects.Status != ConditionID.none)
         {
+            if (target.Status != null)
+            {
+                yield return new WaitForSeconds(1f);
+                yield return TypeDialog($"But it failed!");
+                yield break;
+            }
             target.SetStatus(effects.Status);
             var statusName = ConditionsDB.Conditions[effects.Status].Name;
             if (target == enemyUnit.Pokemon)
@@ -729,9 +838,13 @@ public class BattleSystem : MonoBehaviour
         while (pokemon.StatusChanges.Count > 0)
         {
             var message = pokemon.StatusChanges.Dequeue();
-            dialogBox.GetComponent<BattleDialogBox>().TypeDialog(message);
-            yield return WaitForDialogueBox();
+            yield return TypeDialog(message);
         }
+    }
+    private Color GetFlashColor(BattleUnit unit)
+    {
+        if (unit.Pokemon.Status == null) return Color.black;
+        return unit.Pokemon.Status.FlashColor;
     }
     private IEnumerator PlayerMoveRoutine(Move move)
     {
@@ -739,39 +852,37 @@ public class BattleSystem : MonoBehaviour
         yield return StartCoroutine(WaitForDialogueBox());
 
         float effectiveness = GetMoveEffectiveness(move, enemyUnit.Pokemon.Base.Type1, enemyUnit.Pokemon.Base.Type2);
+        Debug.Log("Effectiveness: " + effectiveness);
         bool isCritical = false;
-        if (effectiveness > 0)
+        if ((effectiveness > 0 && !(move.Base.Category == MoveCategory.Status)) || (move.Base.Category == MoveCategory.Status && enemyUnit.Pokemon.Status == null))
         {
             isCritical = UnityEngine.Random.Range(0, 24) == 0;
             playerUnit.PlayAttackAnimation();
-            StartCoroutine(FlashSprite(enemyUnit.GetComponent<UnityEngine.UI.Image>(), 3, 0.1f));
+            StartCoroutine(FlashSprite(enemyUnit.GetComponent<UnityEngine.UI.Image>(), 3, 0.1f, Color.black));
             enemyUnit.Pokemon.TakeDamage(move, effectiveness, isCritical, playerUnit.Pokemon);
             UpdateHud(enemyUnit);
-            if (move.Base.Category == MoveCategory.Status)
-            {
-                yield return RunMoveEffects(move, playerUnit.Pokemon, enemyUnit.Pokemon);
-            }
+        }
+        if (move.Base.Category == MoveCategory.Status)
+        {
+            yield return RunMoveEffects(move, playerUnit.Pokemon, enemyUnit.Pokemon);
         }
 
 
         yield return new WaitForSeconds(1f);
 
-        if (move.Base.Category != MoveCategory.Status) yield return StartCoroutine(ShowEffectivenessMessage(effectiveness, playerUnit.Pokemon.Base.Name));
+        if (move.Base.Category != MoveCategory.Status) yield return StartCoroutine(ShowEffectivenessMessage(effectiveness, enemyUnit.Pokemon.Base.Name));
 
 
         if (isCritical)
         {
             yield return new WaitForSeconds(1f);
-            dialogBox.GetComponent<BattleDialogBox>().TypeDialog($"A critical hit!");
-
-            yield return StartCoroutine(WaitForDialogueBox());
+            yield return TypeDialog($"A critical hit!");
         }
 
         if (enemyUnit.Pokemon.HP <= 0)
         {
             yield return new WaitForSeconds(1f);
-            dialogBox.GetComponent<BattleDialogBox>().TypeDialog($"{enemyUnit.Pokemon.Base.Name} fainted!");
-            yield return StartCoroutine(WaitForDialogueBox());
+            yield return TypeDialog($"{enemyUnit.Pokemon.Base.Name} fainted!");
             enemyUnit.PlayFaintAnimation();
             yield return new WaitForSeconds(1f);
             int expYield = playerUnit.Pokemon.Base.ExpYield;
@@ -779,22 +890,14 @@ public class BattleSystem : MonoBehaviour
             int playerLevel = playerUnit.Pokemon.Level;
             float expGainMultiplier = Mathf.FloorToInt((expYield * enemyLevel) / 7);
             playerUnit.Pokemon.Exp += Mathf.FloorToInt(expGainMultiplier);
-            dialogBox.GetComponent<BattleDialogBox>().TypeDialog($"{playerUnit.Pokemon.Base.Name} gained {expGainMultiplier} exp!");
+            yield return TypeDialog($"{playerUnit.Pokemon.Base.Name} gained {expGainMultiplier} exp!");
             yield return playerHud.GetComponent<StatGUI>().SetExpSmooth(true);
-            yield return StartCoroutine(WaitForDialogueBox());
-            // Gain experience and animate the exp slider
-            //var expNeededForNextLevel = playerUnit.Pokemon.Base.GetExpForLevel(playerUnit.Pokemon.Level);
-            //yield return new WaitUntil(() => playerUnit.Pokemon.Exp >= expNeededForNextLevel); // Wait until the exp animation is complete
 
-            // Check for level up
             while (playerUnit.Pokemon.CheckForLevelUp())
             {
-                // Reset the slider for the new level's exp and animate it if there's overflow exp
                 playerHud.GetComponent<StatGUI>().SetLevel();
                 yield return playerHud.GetComponent<StatGUI>().SetExpSmooth(true);
-                // Show level up dialogue
-                dialogBox.GetComponent<BattleDialogBox>().TypeDialog($"{playerUnit.Pokemon.Base.Name} grew to level {playerUnit.Pokemon.Level}!");
-                yield return StartCoroutine(WaitForDialogueBox());
+                yield return TypeDialog($"{playerUnit.Pokemon.Base.Name} grew to level {playerUnit.Pokemon.Level}!");
             }
 
 
@@ -810,30 +913,18 @@ public class BattleSystem : MonoBehaviour
     {
         if (effectiveness == 0f)
         {
-            dialogBox.GetComponent<BattleDialogBox>().TypeDialog("It does not affect " + targetName + "...");
+            yield return TypeDialog("It does not affect " + targetName + "...");
         }
         else if (effectiveness > 1.0f)
         {
-            dialogBox.GetComponent<BattleDialogBox>().TypeDialog("It's super effective!");
+            yield return TypeDialog("It's super effective!");
         }
         else if (effectiveness < 1.0f)
         {
-            dialogBox.GetComponent<BattleDialogBox>().TypeDialog("It's not very effective...");
+            yield return TypeDialog("It's not very effective...");
         }
 
         yield return StartCoroutine(WaitForDialogueBox());
-    }
-    private IEnumerator FlashSprite(UnityEngine.UI.Image targetImage, int numberOfFlashes, float delay)
-    {
-        Color originalColor = targetImage.color;
-
-        for (int i = 0; i < numberOfFlashes; i++)
-        {
-            targetImage.color = Color.black;
-            yield return new WaitForSeconds(delay);
-            targetImage.color = originalColor;
-            yield return new WaitForSeconds(delay);
-        }
     }
     public void PlaySFX(AudioClip clip)
     {

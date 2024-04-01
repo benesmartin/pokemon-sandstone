@@ -83,18 +83,44 @@ public class BattleUnit : MonoBehaviour
         image.sprite = Pokemon.Base.BackSprite;
         if (PokemonParty.Instance.IsWildBattle)
         {
-            if (!initialAnimationPlayed) StartCoroutine(PlayWildBattleEnterAnimation());
-            else PlayEnterAnimation();
+            if (!initialAnimationPlayed)
+            {
+                StartCoroutine(PlayWildBattleEnterAnimation());
+            }
         }
         else
         {
-            if (!initialAnimationPlayed) StartCoroutine(StartAnimation());
-            else PlayEnterAnimation();
+            if (!initialAnimationPlayed)
+            {
+                StartCoroutine(StartAnimation());
+            }
+        }
+
+        if (initialAnimationPlayed || BattleSystem.Instance.shouldSkipAnimation)
+        {
+            PlayEnterAnimation();
         }
     }
     private IEnumerator PlayWildBattleEnterAnimation()
     {
         TweenerCore<Vector2, Vector2, VectorOptions> wildPokemonMove = null;
+        if (BattleSystem.Instance.shouldSkipAnimation)
+        {
+            if (!isPlayerUnit)
+            {
+                image.DOFade(1f, 0f);
+                image.rectTransform.anchoredPosition = new Vector2(-1058, -574);
+            }
+
+            if (isPlayerUnit)
+            {
+                Debug.Log($"Player unit should skip animation {trainer == null}");
+                trainer.rectTransform.anchoredPosition = new Vector2(1269, -294);
+            }
+
+            initialAnimationPlayed = true;
+            yield break;
+        }
         if (!isPlayerUnit)
         { 
             
@@ -147,6 +173,21 @@ public class BattleUnit : MonoBehaviour
 
     private IEnumerator StartAnimation()
     {
+        if (BattleSystem.Instance.shouldSkipAnimation)
+        {
+            initialAnimationPlayed = true;
+            if (!isPlayerUnit)
+            {
+                this.image.DOFade(1f, 0f);
+            }
+            else
+            {
+                trainer.rectTransform.anchoredPosition = new Vector2(-500, -294);
+                StartCoroutine(MoveTrainerOffScreen(trainer));
+            }
+
+            yield break;
+        }
         if (!isPlayerUnit) this.image.DOFade(0f, 0f);
         var image = trainer; 
                          
@@ -175,7 +216,12 @@ public class BattleUnit : MonoBehaviour
 
     private IEnumerator MoveTrainerOffScreen(Image image)
     {
-        
+        if (BattleSystem.Instance.shouldSkipAnimation)
+        {
+            image.sprite = trainer3;
+            image.rectTransform.anchoredPosition = new Vector2(-1250, image.rectTransform.anchoredPosition.y);
+            yield break;
+        }
         image.sprite = trainer2;
         PlayEnterAnimation();
         
@@ -195,6 +241,15 @@ public class BattleUnit : MonoBehaviour
 
     private void MoveFoeOffScreen(Image image)
     {
+        if (BattleSystem.Instance.shouldSkipAnimation)
+        {
+            if (!isPlayerUnit)
+            {
+                this.image.DOFade(1f, 0f);
+                image.rectTransform.anchoredPosition = new Vector2(-150, image.rectTransform.anchoredPosition.y);
+            }
+            return;
+        }
         if (isPlayerUnit) return;
         this.image.DOFade(1f, 0.5f);
         
@@ -208,7 +263,17 @@ public class BattleUnit : MonoBehaviour
 
     public void PlayEnterAnimation()
     {
+        Debug.Log($"PlayEnterAnimation called. isPlayerUnit: {isPlayerUnit}");
         if (!isPlayerUnit) return;
+        if (BattleSystem.Instance.shouldSkipAnimation)
+        {
+            image.DOFade(1f, 0);
+            image.transform.localPosition = new Vector3(-1100, originalPos.y);
+            rectTransform.anchoredPosition = new Vector2(-300, originalPos.y);
+            image.sprite = Pokemon.Base.BackSprite;
+            initialAnimationPlayed = true;
+            return;
+        }
         image.sprite = Pokemon.Base.BackSprite;
         image.DOFade(1f, 0);
         if (isPlayerUnit)

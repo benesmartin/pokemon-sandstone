@@ -11,6 +11,7 @@ public class ConditionsDB
             Name = "Poison",
             Description = "The Pokémon is poisoned.",
             StartMessage = " was poisoned!",
+            FlashColor = BattleSystem.Instance.ColorHex("#7b00c6"),
             OnAfterTurn = (Pokemon pokemon) =>
             {
                 pokemon.UpdateHP(pokemon.MaxHP / 8);
@@ -22,6 +23,7 @@ public class ConditionsDB
             Name = "Burn",
             Description = "The Pokémon is burned.",
             StartMessage = " was burned!",
+            FlashColor = BattleSystem.Instance.ColorHex("#ff7400"),
             OnAfterTurn = (Pokemon pokemon) =>
             {
                 pokemon.UpdateHP(pokemon.MaxHP / 16);
@@ -33,9 +35,9 @@ public class ConditionsDB
             Name = "Sleep",
             Description = "The Pokémon is asleep.",
             StartMessage = " fell asleep!",
+            FlashColor = BattleSystem.Instance.ColorHex("#000097"),
             OnStart = (Pokemon pokemon) =>
             {
-                // Sleep for 1-3 turns
                 pokemon.StatusTime = Random.Range(1, 4);
                 Debug.Log($"Will be asleep for {pokemon.StatusTime} moves");
             },
@@ -44,6 +46,7 @@ public class ConditionsDB
                 if (pokemon.StatusTime <= 0)
                 {
                     pokemon.CureStatus();
+                    Debug.Log("1. Woke up!");
                     pokemon.StatusChanges.Enqueue($"{pokemon.Base.Name} woke up!");
                     return true;
                 }
@@ -58,6 +61,7 @@ public class ConditionsDB
             Name = "Freeze",
             Description = "The Pokémon is frozen.",
             StartMessage = " was frozen solid!",
+            FlashColor = BattleSystem.Instance.ColorHex("#00c7d3"),
             OnBeforeMove = (Pokemon pokemon) =>
                 {
                     if  (Random.Range(1, 5) == 1)
@@ -75,6 +79,7 @@ public class ConditionsDB
             Name = "Paralyze",
             Description = "The Pokémon is paralyzed.",
             StartMessage = " was paralyzed!",
+            FlashColor = BattleSystem.Instance.ColorHex("#d1e300"),
             OnBeforeMove = (Pokemon pokemon) =>
                 {
                     if  (Random.Range(1, 5) == 1)

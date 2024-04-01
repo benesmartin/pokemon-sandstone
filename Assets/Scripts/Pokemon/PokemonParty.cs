@@ -59,6 +59,7 @@ public class PokemonParty : MonoBehaviour
             {
                 Debug.Log(pokemon.Base.Name + " evolved into " + evolution.EvolvedForm.Name);
                 var evolutionScreen = EvolutionScreenManager.Instance.evolutionScreen;
+                if (evolutionScreen == null) GameObject.FindGameObjectWithTag("EvolutionScreen").GetComponent<EvolutionScreen>();
                 evolutionScreen.SetActive(true);
                 EvolutionScreen.Instance.Show(pokemon, evolution.EvolvedForm);
                 pokemon.Evolve(evolution);
@@ -81,7 +82,7 @@ public class PokemonParty : MonoBehaviour
                 return pokemon;
             }
         }
-        Debug.Log("No healthy Pok�mon in player's party.");
+        Debug.Log("No healthy Pokemon in player's party.");
         return null;
     }
 

@@ -24,6 +24,15 @@ public class ButtonSelectHandler : MonoBehaviour, ISelectHandler
     private void ShowItemDescriptionPlaceholder()
     {
         Debug.Log("Item Selected: " + gameObject.name);
-        gameObject.GetComponent<UnityEngine.UI.Button>().onClick.Invoke();
+        PauseMenu.Instance.currentItem = gameObject.GetComponent<UnityEngine.UI.Button>();
+        ItemHolder itemHolder = gameObject.GetComponent<ItemHolder>();
+        if (itemHolder != null && itemHolder.Item != null)
+        {
+            PauseMenu.Instance.OnItemSelect(itemHolder.Item);
+        }
+        else
+        {
+            Debug.LogError("ItemHolder component or Item is missing!");
+        }
     }
 }

@@ -1,3 +1,4 @@
+using DG.Tweening.Core.Easing;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -20,6 +21,13 @@ public class MainBattleButtons : MonoBehaviour
     [SerializeField] GameObject pokemonPartyDialogBox;
     [SerializeField] GameObject cancelButton;
     [SerializeField] GameObject pokeball;
+    [SerializeField] GameObject itemScreen;
+    [SerializeField] GameObject itemScreenDialogBox;
+    [SerializeField] GameObject itemButton;
+
+    public Item currentItem;
+
+    public bool isItemScreenInBattle = false;
 
     public bool isInMoves = false;
     public int escapeAttempts = 0;
@@ -74,7 +82,7 @@ public class MainBattleButtons : MonoBehaviour
     {
         if (GameObject.Find("Move Buttons")) GameObject.Find("Move Buttons").SetActive(false);
         mainButtons.SetActive(true);
-        EventSystem.current.SetSelectedGameObject(GameObject.Find("Battle Button"));
+        UIFocusManager.Instance.eventSystem.SetSelectedGameObject(GameObject.Find("Battle Button"));
         isInMoves = false;
 
         yield return StartCoroutine(WaitForDialogueBox());
@@ -85,20 +93,65 @@ public class MainBattleButtons : MonoBehaviour
     {
         SetDialog("Choose a move!");
         isInMoves = true;
-        EventSystem.current.SetSelectedGameObject(GameObject.Find("Move 1 Button"));
+        UIFocusManager.Instance.eventSystem.SetSelectedGameObject(GameObject.Find("Move 1 Button"));
     }
+    public void HidePartyScreen()
+    {
+        pokemonParty.SetActive(false);
+    }
+    public IEnumerator TypeDialog(string message, bool success)
+    {
+        Debug.Log($"Typing message: {message}");
+        pokemonPartyDialogBox.GetComponent<BattleDialogBox>().TypeDialog(message);
+        if (!success)
+        {
+            yield return StartCoroutine(WaitForDialogueBox());
+            yield return new WaitForSeconds(2f);
+            pokemonPartyDialogBox.GetComponent<BattleDialogBox>().TypeDialog("On which Pokemon should the item be used?");
+        }
 
+    }
     public void OnPokemonButton()
     {
 
         pokemonParty.SetActive(true);
         SetPokemonPartyButtons(PokemonParty.Instance.Pokemons);
-        EventSystem.current.SetSelectedGameObject(firstPokemonButton);
+        UIFocusManager.Instance.eventSystem.SetSelectedGameObject(firstPokemonButton);
         pokemonPartyDialogBox.GetComponent<BattleDialogBox>().TypeDialog("Choose a Pokemon.");
+        BattleSystem.Instance.isSwitching = true;
     }
+
+    public void OnItemApply(Item item)
+    {
+        currentItem = item; 
+        ItemBagManager.Instance.GetItemScreen().SetActive(false);
+        pokemonParty.SetActive(true);
+        SetPokemonPartyButtons(PokemonParty.Instance.Pokemons);
+        UIFocusManager.Instance.eventSystem.SetSelectedGameObject(firstPokemonButton);
+        pokemonPartyDialogBox.GetComponent<BattleDialogBox>().TypeDialog("On which Pokemon should the item be used?");
+        BattleSystem.Instance.isApplyingItem = true;
+    }
+
     public void OnCancelButton()
     {
-        EventSystem.current.SetSelectedGameObject(GameObject.Find("Battle Button"));
+        if (BattleSystem.Instance.isApplyingItem)
+        {
+            Debug.Log("Canceling item application.");
+            BattleSystem.Instance.isApplyingItem = false;
+            pokemonParty.SetActive(false);
+            ItemBagManager.Instance.GetItemScreen().SetActive(true);
+            UIFocusManager.Instance.eventSystem.SetSelectedGameObject(PauseMenu.Instance.currentItem.gameObject);
+            return;
+        }
+        if (BattleSystem.Instance.isSwitching)
+        {
+            Debug.Log("Canceling pokemon switch.");
+            BattleSystem.Instance.isSwitching = false;
+            pokemonParty.SetActive(false);
+            UIFocusManager.Instance.eventSystem.SetSelectedGameObject(GameObject.Find("Battle Button"));
+            return;
+        }
+        UIFocusManager.Instance.eventSystem.SetSelectedGameObject(GameObject.Find("Battle Button"));
     }
     public void SetPokemonPartyButtons(List<Pokemon> pokemons)
     {
@@ -121,10 +174,29 @@ public class MainBattleButtons : MonoBehaviour
 
     private void SetupNavigation(List<GameObject> activeButtons)
     {
-        if (activeButtons.Count <= 1) return;
+        Debug.Log("Setting up navigation for " + activeButtons.Count + " buttons.");
+        Debug.Log("Active buttons: " + string.Join(", ", activeButtons));
+        if (activeButtons.Count == 0) return;
+
+        Navigation cancelNav = new Navigation();
+        cancelNav.mode = Navigation.Mode.Explicit;
+        cancelNav.selectOnUp = activeButtons[activeButtons.Count - 1].GetComponent<Button>();
+        cancelButton.GetComponent<Button>().navigation = cancelNav;
+
+        if (activeButtons.Count == 1)
+        {
+            Navigation nav = new Navigation();
+            nav.mode = Navigation.Mode.Explicit;
+            nav.selectOnDown = cancelButton.GetComponent<Button>();
+            activeButtons[0].GetComponent<Button>().navigation = nav;
+            activeButtons[0].GetComponent<Outline>().enabled = true;
+            return;
+        }
 
         for (int i = 0; i < activeButtons.Count; i++)
         {
+            if (i == 0) activeButtons[0].GetComponent<Outline>().enabled = true;
+            else activeButtons[i].GetComponent<Outline>().enabled = false;
             Navigation nav = new Navigation();
             nav.mode = Navigation.Mode.Explicit;
 
@@ -149,16 +221,13 @@ public class MainBattleButtons : MonoBehaviour
 
             activeButtons[i].GetComponent<Button>().navigation = nav;
         }
-
-
-        Navigation cancelNav = new Navigation();
-        cancelNav.mode = Navigation.Mode.Explicit;
-        cancelNav.selectOnUp = activeButtons[activeButtons.Count - 1].GetComponent<Button>();
-        cancelButton.GetComponent<Button>().navigation = cancelNav;
     }
 
 
-
+    public void SetDialogParty(string message)
+    {
+        pokemonPartyDialogBox.GetComponent<BattleDialogBox>().TypeDialog(message);
+    }   
 
     private void SetPokemonButton(GameObject pokemonButton, Pokemon pokemon)
     {
@@ -169,8 +238,8 @@ public class MainBattleButtons : MonoBehaviour
         FindDeepChild(pokemonButton, "Party Sprite").GetComponent<Image>().sprite = pokemon.Base.FrontSprite;
         FindDeepChild(pokemonButton, "Name").GetComponent<TextMeshProUGUI>().text = pokemon.Base.Name;
         FindDeepChild(pokemonButton, "Level").GetComponent<TextMeshProUGUI>().text = $"Lv. {pokemon.Level}";
-        FindDeepChild(pokemonButton, "Slider").GetComponent<Slider>().value = pokemon.HP;
         FindDeepChild(pokemonButton, "Slider").GetComponent<Slider>().maxValue = pokemon.MaxHP;
+        FindDeepChild(pokemonButton, "Slider").GetComponent<Slider>().value = pokemon.HP;
         FindDeepChild(pokemonButton, "HP Value").GetComponent<TextMeshProUGUI>().text = $"{pokemon.HP}/{pokemon.MaxHP}";
         var fillImage = FindDeepChild(pokemonButton, "Fill").GetComponent<Image>();
         Canvas.ForceUpdateCanvases();
@@ -228,10 +297,26 @@ public class MainBattleButtons : MonoBehaviour
 
     public void OnBagButton()
     {
-        StartCoroutine(OnBagRoutine());
+        GameObject itemScreen = ItemBagManager.Instance.GetItemScreen();
+        if (itemScreen != null)
+        {
+            itemScreen.SetActive(true);
+        }
+        else
+        {
+            Debug.LogError("ItemScreen is null.");
+        }
+
+        PauseMenu.Instance.OpenInventory();
+        isItemScreenInBattle = true;
     }
 
     private IEnumerator OnBagRoutine()
+    {
+        yield return StartCoroutine(BagButtonRoutine());
+    }
+
+    public IEnumerator OnPokeballRoutine(Pokeball ball)
     {
         if (!PokemonParty.Instance.IsWildBattle)
         {
@@ -243,17 +328,18 @@ public class MainBattleButtons : MonoBehaviour
             yield return new WaitForSeconds(1f);
             mainButtons.SetActive(true);
             SetDialog("What will " + playerUnit.Pokemon.Base.Name + " do?");
+            UIFocusManager.Instance.eventSystem.SetSelectedGameObject(GameObject.Find("Battle Button"));
             yield break;
         }
         if (BattleSystem.Instance != null)
         {
-            StandardPokeball standardPokeball = new();
-            string filename = Regex.Replace(standardPokeball.Name.ToLower(), @"\s+", "");
-            pokeball.GetComponent<Image>().sprite = (Sprite)Resources.Load($"{filename}", typeof(Sprite));
-            SetDialog("You threw a " + standardPokeball.Name + "!");
+            Inventory.Instance.RemoveItem(ball.Name);
+            string filename = ball.GetSpriteName();
+            pokeball.GetComponent<Image>().sprite = Resources.Load<Sprite>(filename);
+            SetDialog("You threw a " + ball.Name + "!");
             yield return StartCoroutine(WaitForDialogueBox());
             yield return new WaitForSeconds(1f);
-            BattleSystem.Instance.TryCatchPokemon(standardPokeball);
+            BattleSystem.Instance.TryCatchPokemon(ball);
         }
         else
         {

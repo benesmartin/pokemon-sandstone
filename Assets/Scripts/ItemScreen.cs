@@ -13,6 +13,21 @@ public class ItemScreen : MonoBehaviour
     }
     public void OnCancelPartyButton()
     {
-        eventSystem.SetSelectedGameObject(itemButton);
+         if(!MainBattleButtons.Instance) 
+            eventSystem.SetSelectedGameObject(PauseMenu.Instance.GetBagButton());
+         else 
+         {
+            GameObject itemScreen = ItemBagManager.Instance.GetItemScreen();
+            if (itemScreen != null)
+            {
+                itemScreen.SetActive(false);
+            }
+            else
+            {
+                Debug.LogError("ItemScreen is null.");
+            }
+            MainBattleButtons.Instance.isItemScreenInBattle = false;
+            MainBattleButtons.Instance.OnCancelButton();
+        }
     }
 }

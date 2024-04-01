@@ -18,6 +18,7 @@ TagManager:
   - PokedexButton
   - PokemonDisplay
   - EvolutionCanvas
+  - ItemScreen
   layers:
   - Default
   - TransparentFX

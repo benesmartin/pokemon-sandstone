@@ -378,20 +378,25 @@ public class PlayerMovement : MonoBehaviour
                 isTransitioning = true;
                 animator.SetFloat("Speed", 0f);
                 SaveCharacterPosition();
+                Debug.Log($"1. Transition: {transition}, Video: {video}");
                 if (transition == null)
                 {
-                    transition = GameObject.FindWithTag("Transition");
+                    Debug.Log($"2Transition: {transition}, Video: {video}");
+                    transition = TransitionManager.Instance.GetTransitionScreen();
+                    Debug.Log($"3Transition: {transition}, Video: {video}");
                     Debug.Log(transition == null ? "Transition object not found." : "Transition object found.");
                 }
 
                 if (transition != null)
                 {
+                    Debug.Log($"Transition object is active: {transition.activeInHierarchy}");
                     transition.SetActive(true);
                 }
                 else
                 {
                     Debug.LogError("Transition object is null when trying to activate.");
                 }
+                if (video == null) video = TransitionManager.Instance.GetTransitionPlayer().GetComponent<VideoPlayer>();
 
                 video.Play();
                 video.loopPointReached += CheckOver;

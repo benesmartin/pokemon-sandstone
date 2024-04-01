@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using UnityEngine;
 
@@ -13,6 +14,10 @@ public class Pokeball : Item
         : base(name, description, ItemCategory.Pokeball)
     {
         CatchRateModifier = catchRateModifier;
+    }
+    public string GetSpriteName()
+    {
+        return Regex.Replace(Name.ToLower(), @"\s+", "");
     }
 }
 public class StandardPokeball : Pokeball

@@ -96,26 +96,69 @@ public class StatGUI : MonoBehaviour
         return Mathf.Clamp01(normalizedExp);
     }
 
-    public void UpdateHP(Pokemon pokemon)
+    public IEnumerator UpdateHP(Pokemon pokemon)
     {
-        StartCoroutine(UpdateHPCoroutine(pokemon));
+        yield return StartCoroutine(UpdateHPCoroutine(pokemon));
+    }
+
+    public IEnumerator UpdateHP(Pokemon pokemon, Slider hpSlider, TextMeshProUGUI hpValue, Image fillImage)
+    {
+        yield return StartCoroutine(UpdateHPCoroutine(pokemon, hpSlider, hpValue, fillImage));
     }
 
     IEnumerator UpdateHPCoroutine(Pokemon pokemon)
     {
         Debug.Log("[StatGUI UpdateHPCoroutine] Called for: " + pokemon.Base.Name + " with HP: " + pokemon.HP);
-        while (hpSlider.value > pokemon.HP)
+        while (hpSlider.value != pokemon.HP)
         {
-            hpSlider.value--;
+            if (hpSlider.value < pokemon.HP)
+                hpSlider.value++;
+            else
+                hpSlider.value--;
             hpValue.text = hpSlider.value + "/" + pokemon.MaxHP;
-
+            Canvas.ForceUpdateCanvases();
             UpdateFillColor((int)hpSlider.value, pokemon.MaxHP);
 
             yield return new WaitForSeconds(0.1f);
         }
     }
 
+    IEnumerator UpdateHPCoroutine(Pokemon pokemon, Slider hpSlider, TextMeshProUGUI hpValue, Image fillImage)
+    {
+        Debug.Log("[StatGUI UpdateHPCoroutine] Called for: " + pokemon.Base.Name + " with HP: " + pokemon.HP);
+        while (hpSlider.value != pokemon.HP)
+        {
+            if (hpSlider.value < pokemon.HP)
+                hpSlider.value++;
+            else
+                hpSlider.value--;
+            hpValue.text = hpSlider.value + "/" + pokemon.MaxHP;
+            Canvas.ForceUpdateCanvases();
+            UpdateFillColor((int)hpSlider.value, pokemon.MaxHP, fillImage);
+
+            yield return new WaitForSeconds(0.1f);
+        }
+    }
+
     private void UpdateFillColor(int currentHP, int maxHP)
+    {
+        float hpPercentage = (float)currentHP / maxHP;
+
+        Color highHPColor = HexToColor("#00C304");
+        Color mediumHPColor = Color.yellow;
+        Color lowHPColor = Color.red;
+
+        if (hpPercentage > 0.5f)
+        {
+            fillImage.color = Color.Lerp(mediumHPColor, highHPColor, (hpPercentage - 0.5f) * 2);
+        }
+        else
+        {
+            fillImage.color = Color.Lerp(lowHPColor, mediumHPColor, hpPercentage * 2);
+        }
+    }
+
+    private void UpdateFillColor(int currentHP, int maxHP, Image fillImage)
     {
         float hpPercentage = (float)currentHP / maxHP;
 
