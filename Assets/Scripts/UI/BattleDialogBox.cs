@@ -36,8 +36,10 @@ public class BattleDialogBox : MonoBehaviour
     public void TypeDialog(string dialog, bool allowSkipping = true)
     {
         this.dialog = dialog;
+        Debug.Log("TypeDialog called with dialog: " + dialog);
         if (isTyping && allowSkipping)
         {
+            Debug.Log("Typing in progress, stopping and setting text instantly.");
             StopCoroutine(typeDialogCoroutine);
             dialogText.text = dialog;
             isTyping = false;
@@ -45,23 +47,43 @@ public class BattleDialogBox : MonoBehaviour
         }
         else if (!isTyping)
         {
+            Debug.Log("Starting new typing coroutine.");
             typeDialogCoroutine = StartCoroutine(TypeDialogCoroutine(dialog));
         }
     }
-
-
     private IEnumerator TypeDialogCoroutine(string dialog)
     {
         isTyping = true;
+        int tagOpenIndex = 0;
+        bool isTag = false;
+
         dialogText.text = "";
-        foreach (var letter in dialog.ToCharArray())
+
+        for (int i = 0; i < dialog.Length; i++)
         {
-            dialogText.text += letter;
-            yield return new WaitForSeconds(1f / lettersPerSecond);
+            if (dialog[i] == '<')
+            {
+                isTag = true;
+                tagOpenIndex = i;
+            }
+            if (dialog[i] == '>' && isTag)
+            {
+                isTag = false;
+                dialogText.text += dialog.Substring(tagOpenIndex, i - tagOpenIndex + 1);
+                continue;
+            }
+
+            if (!isTag)
+            {
+                dialogText.text += dialog[i];
+                yield return new WaitForSeconds(1f / lettersPerSecond);
+            }
         }
+
         isTyping = false;
         DialogCompleted?.Invoke();
     }
+
     public void SetDialogText(string dialog)
     {
         dialogText.text = dialog;

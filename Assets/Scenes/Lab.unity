@@ -3528,6 +3528,7 @@ MonoBehaviour:
   bikingSpeed: 10
   rb: {fileID: 753981578}
   animator: {fileID: 753981579}
+  _currentSpeed: 0
   lastHorizontal: 0
   lastVertical: -1
   solidObjectsLayer:
@@ -3549,6 +3550,8 @@ MonoBehaviour:
   text: {fileID: 0}
   PosX: 0
   PosY: 0
+  isPaused: 0
+  ignoreNextInput: 0
 --- !u!50 &753981578
 Rigidbody2D:
   serializedVersion: 4
@@ -6386,16 +6389,33 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b81cd58c4a2cc846b28258d298d7192, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  interactionType: 0
+  tradeOffer:
+    wantedPokemon:
+      pokedexNumber: 0
+      level: 0
+    offeredPokemon:
+      pokedexNumber: 0
+      level: 0
+  canTrade: 0
   dialogBox: {fileID: 0}
   dialogueTextFile: {fileID: 4900000, guid: 60836593119cd654fb26f120d990a440, type: 3}
+  tradeSuccessDialogueFile: {fileID: 4900000, guid: f2078abd4984f244dbb206e226e86397, type: 3}
+  tradeFailDialogueFile: {fileID: 0}
+  tradeCompletedSuccessfully: 0
   isTalking: 0
   isTrainer: 0
   isProfessor: 0
   isSmallProfessor: 1
   profScreen: {fileID: 0}
+  videoFinished: 0
   heldItem:
-    _base: {fileID: 11400000, guid: 37f91dc081de77a4488dd89f9327b810, type: 2}
-    level: 5
+    pokedexNumber: 4
+    level: 7
+  trainerSprite: {fileID: 0}
+  trainerName: 
+  sceneName: 
+  pokemons: []
 --- !u!61 &1643600544
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -7440,16 +7460,35 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b81cd58c4a2cc846b28258d298d7192, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  interactionType: 2
+  tradeOffer:
+    wantedPokemon:
+      pokedexNumber: 0
+      level: 0
+    offeredPokemon:
+      pokedexNumber: 0
+      level: 0
+  canTrade: 0
   dialogBox: {fileID: 0}
   dialogueTextFile: {fileID: 4900000, guid: 1885fafc21b9d7042b67042516b994dd, type: 3}
+  tradeSuccessDialogueFile: {fileID: 4900000, guid: a456bc4b5181d884084076b158c878ed, type: 3}
+  tradeFailDialogueFile: {fileID: 0}
+  tradeCompletedSuccessfully: 0
   isTalking: 0
   isTrainer: 1
   isProfessor: 0
   isSmallProfessor: 0
   profScreen: {fileID: 0}
+  videoFinished: 0
   heldItem:
-    _base: {fileID: 0}
+    pokedexNumber: 0
     level: 0
+  trainerSprite: {fileID: 21300000, guid: 4eebded858a94c04aa7a2e728a153c76, type: 3}
+  trainerName: Rival
+  sceneName: Lab
+  pokemons:
+  - pokedexNumber: 5
+    level: 7
 --- !u!61 &2088132218
 BoxCollider2D:
   m_ObjectHideFlags: 0

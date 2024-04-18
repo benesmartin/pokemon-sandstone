@@ -23,4 +23,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/House2.unity
     guid: 6f1fd584e22dc4a43b18735efa575630
+  - enabled: 1
+    path: Assets/Scenes/Gym.unity
+    guid: 8a4857bb695dff94ba3d39500e0265fb
   m_configObjects: {}

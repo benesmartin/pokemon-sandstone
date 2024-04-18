@@ -55,7 +55,7 @@ public class MainMenu : MonoBehaviour
     }
     public void ExitGame()
     {
-        Debug.Log("Exiting Game");
+        Debug.Log("Exiting Game".SetColor("#00ffff"));
         Application.Quit();
     }
     public void SelectOptions()

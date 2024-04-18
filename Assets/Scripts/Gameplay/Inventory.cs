@@ -6,6 +6,7 @@ public class Inventory : MonoBehaviour
 {
     private Dictionary<string, Item> items;
     public static Inventory Instance { get; private set; }
+    public List<Item> Items { get => new List<Item>(items.Values); }
 
     private void Awake()
     {
@@ -48,7 +49,7 @@ public class Inventory : MonoBehaviour
         }
         return 0;
     }
-
+    
     public List<Item> GetItemsByCategory(ItemCategory category)
     {
         var itemsInCategory = new List<Item>();
@@ -66,7 +67,9 @@ public class Inventory : MonoBehaviour
     {
         T newItem = new T();
         string filename = Regex.Replace(newItem.Name.ToLower(), @"\s+", "");
-        newItem.AddImage((Sprite)Resources.Load($"{filename}", typeof(Sprite)) ? (Sprite)Resources.Load($"{filename}", typeof(Sprite)) : (Sprite)Resources.Load($"mark", typeof(Sprite)));
+        newItem.AddImage((Sprite)Resources.Load($"{filename}", typeof(Sprite)) 
+            ? (Sprite)Resources.Load($"{filename}", typeof(Sprite)) 
+            : (Sprite)Resources.Load($"mark", typeof(Sprite)));
         if (items.ContainsKey(newItem.Name))
         {
             items[newItem.Name].AddCount(count);
@@ -77,6 +80,28 @@ public class Inventory : MonoBehaviour
             newItem.AddCount(count - 1);
             items.Add(newItem.Name, newItem);
             Debug.Log($"Added new item: {newItem.Name} with count {newItem.Count}");
+        }
+    }
+    public bool RemoveItem(string itemName, int count = 1)
+    {
+        if (items.TryGetValue(itemName, out Item item))
+        {
+            if (item.Count > count)
+            {
+                item.AddCount(-count);
+                Debug.Log($"Decreased {itemName} count to {item.Count}");
+            }
+            else
+            {
+                items.Remove(itemName);
+                Debug.Log($"Removed {itemName} from inventory");
+            }
+            return true;
+        }
+        else
+        {
+            Debug.LogWarning($"Item {itemName} not found in inventory.");
+            return false;
         }
     }
     public void CreateOrAddItem(Item newItem, int count)
@@ -106,27 +131,8 @@ public class Inventory : MonoBehaviour
             Debug.Log($"\n-> {kvp.Key} x{kvp.Value.Count}");
         }
     }
-    public bool RemoveItem(string itemName, int count = 1)
+    public Dictionary<string, Item> GetItems()
     {
-        if (items.TryGetValue(itemName, out Item item))
-        {
-            if (item.Count > count)
-            {
-                item.AddCount(-count);
-                Debug.Log($"Decreased {itemName} count to {item.Count}");
-            }
-            else
-            {
-                items.Remove(itemName);
-                Debug.Log($"Removed {itemName} from inventory");
-            }
-            return true;
-        }
-        else
-        {
-            Debug.LogWarning($"Item {itemName} not found in inventory.");
-            return false;
-        }
+        return items;
     }
-
 }

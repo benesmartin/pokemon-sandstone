@@ -1,3 +1,4 @@
+using JetBrains.Annotations;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -7,9 +8,15 @@ using UnityEngine;
 [Serializable]
 public class Pokemon
 {
-    [SerializeField] PokemonBase _base;
+    [SerializeField] int pokedexNumber;
     [SerializeField] int level;
-    public PokemonBase Base { get => _base; }
+    public PokemonBase Base => PokemonBaseDatabase.Instance.FindByPokedexNumber(pokedexNumber);
+
+    public void SetBase(PokemonBase pokemonBase)
+    {
+        pokedexNumber = pokemonBase.PokedexNumber;
+    }
+    public int PokedexNumber { get => pokedexNumber; }
     public Dictionary<Stat, int> Stats { get; private set; }
     public Dictionary<Stat, int> StatBoosts { get; private set; }
     public Guid ID { get => id; set { id = value; } }
@@ -49,6 +56,12 @@ public class Pokemon
         CalculateStats();
         Heal();
     }
+    public void CreatePokemon(int pokedexNumber, int level)
+    {
+        this.pokedexNumber = pokedexNumber;
+        this.level = level;
+        Init();
+    }
     public void CureStatus()
     {
         Status = null;
@@ -57,7 +70,7 @@ public class Pokemon
     {
         Pokemon clone = new Pokemon
         {
-            _base = this._base,
+            pokedexNumber = this.pokedexNumber,
             level = this.level,
             Exp = this.Exp,
             HP = this.HP,
@@ -107,8 +120,11 @@ public class Pokemon
 
     public void Evolve(Evolution evolution)
     {
-        _base = evolution.EvolvedForm;
-        CalculateStats();
+        if (evolution != null && evolution.EvolvedForm != null)
+        {
+            pokedexNumber = evolution.EvolvedForm.PokedexNumber; 
+            CalculateStats();
+        }
     }
     void ResetStatBoost()
     {

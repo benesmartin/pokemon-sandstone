@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15dd7220f75f37541a0519b5f75b94c0, type: 3}
+  m_Name: 7 - Armaknight
+  m_EditorClassIdentifier: 
+  pokedexNumber: 7
+  name: Armaknight
+  subName: Armored Armadillo Pokemon
+  description: Armaknights are brave Pokemon; they will protect their trainer like
+    it's their one and only king or queen.
+  frontSprite: {fileID: 21300000, guid: e917af1ed64ce68478e8131513804a79, type: 3}
+  backSprite: {fileID: 21300000, guid: e917af1ed64ce68478e8131513804a79, type: 3}
+  type1: 17
+  type2: 0
+  maxHP: 75
+  attack: 75
+  defense: 75
+  spAttack: 75
+  spDefense: 75
+  speed: 75
+  expYield: 100
+  growthRate: 0
+  baseCatchRate: 100
+  learnableMoves: []
+  evolutions: []

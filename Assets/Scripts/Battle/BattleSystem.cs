@@ -34,13 +34,26 @@ public class BattleSystem : MonoBehaviour
     private BattleState state;
     public AudioClip song;
     PokemonParty playerParty;
+    PokemonParty enemyParty;
     Pokemon enemyPokemon;
     public bool isItTrue = false;
     public bool IsPlayerTurn;
     public bool IsFaintSwitching = false;
     public bool isSwitching = false;
     public bool isApplyingItem = false;
-    public bool shouldSkipAnimation = true;
+    public bool _shouldSkipAnimation = false;
+    public bool shouldSkipAnimation
+    {
+        get { return _shouldSkipAnimation; }
+        set
+        {
+            if (_shouldSkipAnimation != value)
+            {
+                _shouldSkipAnimation = value;
+                Debug.Log($"shouldSkipAnimation is now: {value}");
+            }
+        }
+    }
     public int Shakes = 99;
     public float catchRate;
     public List<Pokemon> NPCPokemons = new List<Pokemon>();
@@ -85,7 +98,7 @@ public class BattleSystem : MonoBehaviour
         Shakes = 99;
         turn = 1;
         var playerParty = PokemonParty.Instance;
-        var enemyPokemon = isWildBattle ? MapArea.Instance.GetRandomWildPokemon() : playerParty.GetHealthyEnemyPokemon();
+        var enemyPokemon = isWildBattle ? MapArea.Instance.GetRandomWildPokemon() : EnemySpriteManager.Instance.GetHealthyPokemon();
         playerParty.GetHealthyPokemon();
         if (playerParty.GetHealthyPokemon() == null)
         {
@@ -122,7 +135,7 @@ public class BattleSystem : MonoBehaviour
         {
             Debug.LogError("GetRandomWildPokemon returned null or there is no healthy enemy Pokemon.");
         }
-
+        Debug.Log($"Should skip animation: {shouldSkipAnimation}");
         playerUnit.Setup(playerParty.GetHealthyPokemon());
         enemyUnit.Setup(enemyPokemon);
         UpdateHudData();
@@ -138,9 +151,10 @@ public class BattleSystem : MonoBehaviour
     }
     private IEnumerator InitialDialog(bool skipAnimation = false)
     {
+        skipAnimation = false;
         MainBattleButtons.Instance.HideMainButtons();
         PokedexManager.Instance.AddPokemonAsSeen(enemyPokemon.Base.PokedexNumber);
-
+        enemyUnit.AddTrainerImage(EnemySpriteManager.Instance.GetSprite());
         if (skipAnimation)
         {
             dialogBox.GetComponent<BattleDialogBox>().SetDialogText("Finishing up...");
@@ -178,9 +192,9 @@ public class BattleSystem : MonoBehaviour
         }
         else
         {
-            yield return TypeDialog("You are challenged by Trainer Girl" + "!");
+            yield return TypeDialog("You are challenged by " + EnemySpriteManager.Instance.GetName() + "!");
             yield return new WaitForSeconds(1.5f);
-            yield return TypeDialog("Trainer Girl sent out " + enemyUnit.Pokemon.Base.Name + "!");
+            yield return TypeDialog(EnemySpriteManager.Instance.GetName() + " sent out " + enemyUnit.Pokemon.Base.Name + "!");
             yield return new WaitForSeconds(1f);
             foreach (var item in enemyPokemonGUI)
             {
@@ -545,7 +559,6 @@ public class BattleSystem : MonoBehaviour
         yield return new WaitForSeconds(1f);
         if (!playerWins)
         {
-
             string playerName = "You";
             int coinsLost = CalculateCoinsLost();
 
@@ -567,7 +580,7 @@ public class BattleSystem : MonoBehaviour
         }
         else
         {
-
+            EnemySpriteManager.Instance.AddTrainerAsDefeated(EnemySpriteManager.Instance.GetName());
             yield return TypeDialog("You won!");
         }
         yield return new WaitForSeconds(2f);
@@ -586,7 +599,9 @@ public class BattleSystem : MonoBehaviour
 
         PlaySong(song);
 
-        AsyncOperation asyncLoad = SceneManager.LoadSceneAsync("Game");
+        var sceneName = PokemonParty.Instance.IsWildBattle ? "Game" : EnemySpriteManager.Instance.GetSceneName();
+
+        AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(sceneName);
 
         while (!asyncLoad.isDone)
         {
@@ -754,7 +769,7 @@ public class BattleSystem : MonoBehaviour
         bool canRunMove = enemyUnit.Pokemon.OnBeforeMove();
         yield return ShowStatusChanges(enemyUnit.Pokemon);
         if (!canRunMove) {
-            PlayerAction();
+                PlayerAction();
             yield break;
         }
         yield return WaitForDialogueBox();
@@ -902,12 +917,37 @@ public class BattleSystem : MonoBehaviour
 
 
 
-            yield return StartCoroutine(EndBattle(true));
+            yield return StartCoroutine(HandleEnemyPokemonFaint());
         }
         else
         {
             StartCoroutine(EnemyMoveRoutine());
         }
+    }
+    private IEnumerator HandleEnemyPokemonFaint()
+    {
+        yield return TypeDialog($"{enemyUnit.Pokemon.Base.Name} fainted!");
+        enemyUnit.PlayFaintAnimation();
+        yield return new WaitForSeconds(2f);
+        Pokemon nextPokemon = TrySendNextEnemyPokemon();
+        if (nextPokemon != null && !PokemonParty.Instance.IsWildBattle)
+        {
+            enemyUnit.Setup(nextPokemon);
+            enemyHud.GetComponent<StatGUI>().SetData(nextPokemon, false);
+            yield return TypeDialog($"{EnemySpriteManager.Instance.GetName()} sent out {nextPokemon.Base.Name}!");
+            yield return new WaitForSeconds(1f);
+            PlayerAction();
+        }
+        else
+        {
+            yield return StartCoroutine(EndBattle(true));
+        }
+    }
+
+    private Pokemon TrySendNextEnemyPokemon()
+    {
+        var nextPokemon = EnemySpriteManager.Instance.GetHealthyPokemon();
+        return nextPokemon;
     }
     private IEnumerator ShowEffectivenessMessage(float effectiveness, string targetName)
     {

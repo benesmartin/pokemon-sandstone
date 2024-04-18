@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15dd7220f75f37541a0519b5f75b94c0, type: 3}
+  m_Name: 2 - Stonaga
+  m_EditorClassIdentifier: 
+  pokedexNumber: 2
+  name: Stonaga
+  subName: Stone Serpent Pokemon
+  description: Stonaga groups in pairs. These lovely duos chew on leaves of bushes
+    and dig holes into the ground.
+  frontSprite: {fileID: 21300000, guid: 4e494325e65c19546923b500db1d5432, type: 3}
+  backSprite: {fileID: 21300000, guid: 4e494325e65c19546923b500db1d5432, type: 3}
+  type1: 13
+  type2: 9
+  maxHP: 40
+  attack: 40
+  defense: 60
+  spAttack: 30
+  spDefense: 40
+  speed: 45
+  expYield: 159
+  growthRate: 1
+  baseCatchRate: 90
+  learnableMoves:
+  - moveBase: {fileID: 11400000, guid: c656374ad0025ee41b698f1a5e8ff7f3, type: 2}
+    level: 1
+  evolutions:
+  - evolvedForm: {fileID: 11400000, guid: c76318bcee8a88a4b863dfa83be5605b, type: 2}
+    level: 16

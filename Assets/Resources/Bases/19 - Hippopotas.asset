@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15dd7220f75f37541a0519b5f75b94c0, type: 3}
+  m_Name: 19 - Hippopotas
+  m_EditorClassIdentifier: 
+  pokedexNumber: 19
+  name: Hippopotas
+  subName: Hippo Pokemon
+  description: Though large and languid, Hippopotas is difficult to detect due to
+    its tendency to burrow into and lurk beneath the soil. When agitated or excited,
+    it expels sand from its nostrils.
+  frontSprite: {fileID: 21300000, guid: 67c78fb1ae2aa6c4e9dc942b0b7019e3, type: 3}
+  backSprite: {fileID: 21300000, guid: 67c78fb1ae2aa6c4e9dc942b0b7019e3, type: 3}
+  type1: 9
+  type2: 0
+  maxHP: 68
+  attack: 72
+  defense: 78
+  spAttack: 38
+  spDefense: 42
+  speed: 32
+  expYield: 66
+  growthRate: 3
+  baseCatchRate: 140
+  learnableMoves:
+  - moveBase: {fileID: 11400000, guid: c656374ad0025ee41b698f1a5e8ff7f3, type: 2}
+    level: 1
+  evolutions: []

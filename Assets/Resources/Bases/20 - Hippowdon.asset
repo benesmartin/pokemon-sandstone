@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15dd7220f75f37541a0519b5f75b94c0, type: 3}
+  m_Name: 20 - Hippowdon
+  m_EditorClassIdentifier: 
+  pokedexNumber: 20
+  name: Hippowdon
+  subName: Heavyweight Pokemon
+  description: 'Short-tempered and easily moved to violence. It whips up whirlwinds
+    of sand to crush its foes'' spirits, then goes in for the attack. '
+  frontSprite: {fileID: 21300000, guid: 3f1934fb62418a246aca1136ec48bf91, type: 3}
+  backSprite: {fileID: 21300000, guid: 3f1934fb62418a246aca1136ec48bf91, type: 3}
+  type1: 9
+  type2: 0
+  maxHP: 108
+  attack: 112
+  defense: 118
+  spAttack: 68
+  spDefense: 72
+  speed: 47
+  expYield: 184
+  growthRate: 3
+  baseCatchRate: 60
+  learnableMoves: []
+  evolutions: []

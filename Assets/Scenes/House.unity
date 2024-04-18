@@ -269,11 +269,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8068924354407796534, guid: ddddaa099cf720f4098f550408dce576, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -67
+      value: -66
       objectReference: {fileID: 0}
     - target: {fileID: 8068924354407796534, guid: ddddaa099cf720f4098f550408dce576, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 3
+      value: -1
       objectReference: {fileID: 0}
     - target: {fileID: 8068924354407796534, guid: ddddaa099cf720f4098f550408dce576, type: 3}
       propertyPath: m_LocalPosition.z
@@ -950,6 +950,7 @@ MonoBehaviour:
   bikingSpeed: 10
   rb: {fileID: 757101821}
   animator: {fileID: 757101822}
+  currentSpeed: 0
   lastHorizontal: 0
   lastVertical: -1
   solidObjectsLayer:
@@ -971,6 +972,7 @@ MonoBehaviour:
   text: {fileID: 0}
   PosX: 0
   PosY: 0
+  isPaused: 0
 --- !u!50 &757101821
 Rigidbody2D:
   serializedVersion: 4

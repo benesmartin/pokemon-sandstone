@@ -6,7 +6,8 @@ using UnityEngine.EventSystems;
 using TMPro;
 using UnityEngine.UI;
 using System;
-using static UnityEditor.Progress;
+using System.Text.RegularExpressions;
+using System.IO;
 
 public class PauseMenu : MonoBehaviour
 {
@@ -33,6 +34,12 @@ public class PauseMenu : MonoBehaviour
     [SerializeField] GameObject pokemonPartyButton;
     [SerializeField] GameObject mapScreen;
     [SerializeField] GameObject mapExitButton;
+    [SerializeField] GameObject saveButton;
+    [SerializeField] GameObject loadButton1;
+    [SerializeField] GameObject voidText;
+    [SerializeField] ModalPanelSave modalPanelSave;
+    [SerializeField] ModalPanelSave modalPanelLoad;
+    [SerializeField] Fader fader;
     private EventSystem eventSystem;   
     private float timeSinceLastKeyPress = 0.0f;
     private float debounceTime = 0.5f; 
@@ -44,6 +51,7 @@ public class PauseMenu : MonoBehaviour
     public static PauseMenu Instance { get; private set; }
     private void Awake()
     {
+        voidText.SetActive(true);
         if (Instance == null)
         {
             Instance = this;
@@ -68,13 +76,20 @@ public class PauseMenu : MonoBehaviour
     {
         timeSinceLastKeyPress += Time.deltaTime;
 
+        if (Input.GetKeyDown(KeyCode.I) && timeSinceLastKeyPress >= debounceTime)
+        {
+            var a = PokemonBaseDatabase.Instance.FindByPokedexNumber(1);
+            Debug.Log($"Pokemon with pokedex number 1: {a.Name}");
+
+            timeSinceLastKeyPress = 0.0f;
+        }
         if (Input.GetKeyDown(KeyCode.G) && timeSinceLastKeyPress >= debounceTime)
         {
             CreateAFewItemsFromEachCategory();
             PrintInventory();
             timeSinceLastKeyPress = 0.0f; 
         }
-        if ((Input.GetKeyDown(KeyCode.Escape) || Input.GetButtonDown("Menu")) && !isInSubmenu)
+        if ((Input.GetKeyDown(KeyCode.Escape) || Input.GetButtonDown("Menu")) && !isInSubmenu && CheckValidScene(SceneManager.GetActiveScene().name))
         {
             if (GameIsPaused)
             {
@@ -98,6 +113,229 @@ public class PauseMenu : MonoBehaviour
             PokemonParty.Instance.AddPokemon(randomPokemon);
         }
 
+    }
+
+    public void OnCancelSaveButton()
+    {
+        eventSystem.SetSelectedGameObject(saveButton);
+    }
+    public void OnLoadButton(int selectedSlot)
+    {
+        if (SaveSystem.SaveExists(selectedSlot))
+        {
+            modalPanel.Show(eventSystem, "Load this save file?",
+                               () =>
+                               {
+                    modalPanel.Hide(); StartCoroutine(StartLoadSequence(selectedSlot));
+                               },
+                                   () => { eventSystem.SetSelectedGameObject(loadButton1); });
+        }
+        else
+        {
+            modalPanel.Show(eventSystem, "No save file found. Start a new game?",
+                        () =>
+                        {
+                            modalPanel.Hide(); StartCoroutine(InitializeNewGame(selectedSlot));
+                        },
+                        () => { eventSystem.SetSelectedGameObject(loadButton1); });
+
+        }
+    }
+    IEnumerator InitializeNewGame(int slot)
+    {
+        SaveData newGameData = new SaveData
+        {
+            playerPokemons = new List<PokemonData>(),
+            storageSystemPokemons = new List<PokemonData>(),
+            inventory = new List<ItemData>(),
+            playerPosX = -66,
+            playerPosY = -1,
+            spokeToProfessor = false,
+            location = "Petalwind Town",
+            pokedex = "0",
+            time = "0:00",
+            player = "Player",
+            badges = "0",
+            scene = "House"
+        };
+        newGameData.inventory = new List<ItemData>
+         {
+             new ItemData("Poke Ball", 10, "It has a simple red and white design, and it's the most known kind of Poke Ball.", ItemCategory.Pokeball, "StandardPokeball"),
+             new ItemData("Master Ball", 1, "A very rare Poke Ball that never fails in an attempt to catch a Pokemon.", ItemCategory.Pokeball, "MasterBall"),
+             new ItemData("Potion", 10, "A basic potion that restores 20 HP.", ItemCategory.Potion, "StandardPotion"),
+             new ItemData("Map", 1, "A detailed map of the Ejiputo region, useful for adventurers.", ItemCategory.KeyItem, "Map")
+         };
+        string path = Application.persistentDataPath + "/save" + slot + ".json";
+        string json = JsonUtility.ToJson(newGameData, true);
+        File.WriteAllText(path, json);
+        Debug.Log("New game initialized and saved to " + path);
+        PokedexManager.Instance.ResetPokedex();
+
+        yield return new WaitForSeconds(0.1f);
+        modalPanel.ShowTextOnly("Initializing new game...");
+        yield return new WaitForSeconds(2);
+
+        LoadGame(slot);
+    }
+
+    IEnumerator StartLoadSequence(int slot)
+    {
+        yield return new WaitForSeconds(0.1f);
+        modalPanel.ShowTextOnly("Loading...");
+        yield return new WaitForSeconds(2);
+
+        LoadGame(slot);
+    }
+    public void LoadGame(int slot)
+    {
+        voidText.SetActive(false);
+        SaveData data = SaveSystem.LoadGame(slot);
+        if (data == null)
+        {
+            Debug.LogError("Failed to load save data.");
+
+            return;
+        }
+
+        LoadPlayerPokemons(data);
+        LoadPlayerInventory(data);
+        LoadPlayerStorageSystem(data);
+        LoadPlayerPositionAndStats(data);
+        StartCoroutine(FinalizeLoading(data));
+    }
+
+    private void LoadPlayerPokemons(SaveData data)
+    {
+        PokemonParty.Instance.Pokemons.Clear();
+        foreach (PokemonData pokemonData in data.playerPokemons)
+        {
+            Pokemon pokemon = new Pokemon();
+            pokemon.CreatePokemon(pokemonData.pokedexNumber, pokemonData.level);
+            PokemonParty.Instance.AddPokemon(pokemon);
+        }
+    }
+
+    private void LoadPlayerInventory(SaveData data)
+    {
+        Inventory.Instance.Items.Clear();
+        foreach (ItemData itemData in data.inventory)
+        {
+            Item item = CreateItemByTypeName(itemData.itemType);
+            string filename = Regex.Replace(item.Name.ToLower(), @"\s+", "");
+            item.AddImage((Sprite)Resources.Load($"{filename}", typeof(Sprite)) ?? (Sprite)Resources.Load("mark", typeof(Sprite)));
+            Inventory.Instance.AddItem(item);
+            item.AddCount(itemData.amount-1);
+        }
+    }
+
+    private void LoadPlayerPositionAndStats(SaveData data)
+    {
+        CharacterValueManager.Instance.posX = data.playerPosX;
+        CharacterValueManager.Instance.posY = data.playerPosY;
+        CharacterValueManager.Instance.SpokeToProfessor = data.spokeToProfessor;
+
+        SaveDataManager.Instance.Location = data.location;
+        SaveDataManager.Instance.Pokedex = data.pokedex;
+        SaveDataManager.Instance.Time = data.time;
+        SaveDataManager.Instance.Player = data.player;
+        SaveDataManager.Instance.Badges = data.badges;
+    }
+
+    private void LoadPlayerStorageSystem(SaveData data)
+    {
+        PokemonParty.Instance.StorageSystem.Clear();
+        foreach (PokemonData pokemonData in data.storageSystemPokemons)
+        {
+            Pokemon pokemon = new Pokemon();
+            pokemon.CreatePokemon(pokemonData.pokedexNumber, pokemonData.level);
+            PokemonParty.Instance.AddPokemonToStorage(pokemon);
+        }
+    }
+
+    IEnumerator FinalizeLoading(SaveData data)
+    {
+        if (!data.spokeToProfessor)
+        {
+            modalPanel.Hide();
+            LoadManager.Instance.HideScreen();
+            ProfessorManager.Instance.StartProfessorScreen();
+            ProfessorManager.Instance.professorNPC.StartProfessor();
+        }
+        while (ProfessorManager.Instance.isProfessorScreenActive)
+        {
+            yield return null;
+        }
+        yield return fader.FadeIn(0.5f);
+        modalPanel.Hide();
+        LoadManager.Instance.HideScreen();
+        SceneManager.LoadSceneAsync(data.scene);
+        yield return fader.FadeOut(0.5f);
+        PlayerMovement.Instance.LoadCharacterPosition();
+    }
+
+
+
+
+
+    private static Item CreateItemByTypeName(string typeName)
+    {
+        Type itemType = Type.GetType(typeName);
+        if (itemType != null)
+        {
+            return (Item)Activator.CreateInstance(itemType);
+        }
+        else
+        {
+            Debug.LogError("Unknown item type: " + typeName);
+            return null;
+        }
+    }
+    public void OnSaveButton(int selectedSlot)
+    {
+        if (SaveSystem.SaveExists(selectedSlot))
+        {
+            modalPanel.Show(eventSystem, "A save file already exists in this slot. Overwrite?",
+                () => {
+                    modalPanel.Hide(); StartSaveSequence(selectedSlot);
+                },
+                () => { eventSystem.SetSelectedGameObject(modalPanelSave.saveButton1); });
+        }
+        else
+        {
+            StartSaveSequence(selectedSlot);
+        }
+    }
+
+    private void StartSaveSequence(int slot)
+    {
+        StartCoroutine(SaveGameSequence(slot));
+    }
+
+    IEnumerator SaveGameSequence(int slot)
+    {
+        yield return new WaitForSeconds(0.1f);
+        modalPanel.ShowTextOnly("Saving...");
+        yield return new WaitForSeconds(2);
+
+        SaveGame(slot);
+
+        modalPanel.Hide();
+        modalPanel.ShowOkay(eventSystem, "Game saved successfully!",
+            () =>
+            {
+                eventSystem.SetSelectedGameObject(modalPanelSave.saveButton1);
+            });
+    }
+
+    private void SaveGame(int slot)
+    {
+        SaveSystem.SaveGame(slot);
+        modalPanelSave.Init();
+    }
+
+    public bool CheckValidScene(string sceneName)
+    {
+        return sceneName == "Game" || sceneName.Contains("House") || sceneName == "Lab" || sceneName == "Gym";
     }
     public void CreateAFewItemsFromEachCategory()
     {
@@ -158,6 +396,7 @@ public class PauseMenu : MonoBehaviour
     }
     void PauseGame()
     {
+        Debug.Log("Game paused!");
         pauseMenuUI.SetActive(true);
         GameIsPaused = true;
         eventSystem.SetSelectedGameObject(pokedexButton);

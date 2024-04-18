@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15dd7220f75f37541a0519b5f75b94c0, type: 3}
+  m_Name: 11 - Stingblade
+  m_EditorClassIdentifier: 
+  pokedexNumber: 11
+  name: Stingblade
+  subName: Blade Pokemon
+  description: 'Stingblade uses its knife-like hands to cut its enemy''s arms and
+    then feeds on their meat. (o_o)
+
+'
+  frontSprite: {fileID: 21300000, guid: a75484a06bca0884ca3d15816e58252c, type: 3}
+  backSprite: {fileID: 21300000, guid: a75484a06bca0884ca3d15816e58252c, type: 3}
+  type1: 12
+  type2: 7
+  maxHP: 50
+  attack: 50
+  defense: 50
+  spAttack: 50
+  spDefense: 50
+  speed: 50
+  expYield: 100
+  growthRate: 0
+  baseCatchRate: 100
+  learnableMoves:
+  - moveBase: {fileID: 11400000, guid: 0914b98efacbbb0458f7b3ce5ef0ac7d, type: 2}
+    level: 1
+  - moveBase: {fileID: 11400000, guid: c656374ad0025ee41b698f1a5e8ff7f3, type: 2}
+    level: 2
+  evolutions: []

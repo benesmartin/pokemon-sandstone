@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15dd7220f75f37541a0519b5f75b94c0, type: 3}
+  m_Name: 4 - Pawpunch
+  m_EditorClassIdentifier: 
+  pokedexNumber: 4
+  name: Pawpunch
+  subName: Boxing Cat Pokemon
+  description: Pawpunch, surprisingly, does not fight a lot; he loves to cuddle with
+    his trainer more than that.
+  frontSprite: {fileID: 21300000, guid: 695accb1ecb21fd40942b8c3238f6be2, type: 3}
+  backSprite: {fileID: 21300000, guid: 695accb1ecb21fd40942b8c3238f6be2, type: 3}
+  type1: 7
+  type2: 0
+  maxHP: 25
+  attack: 40
+  defense: 20
+  spAttack: 15
+  spDefense: 15
+  speed: 30
+  expYield: 62
+  growthRate: 0
+  baseCatchRate: 190
+  learnableMoves:
+  - moveBase: {fileID: 11400000, guid: c656374ad0025ee41b698f1a5e8ff7f3, type: 2}
+    level: 1
+  - moveBase: {fileID: 11400000, guid: cff59e9054879274e9baaffd04fbfe98, type: 2}
+    level: 2
+  evolutions: []

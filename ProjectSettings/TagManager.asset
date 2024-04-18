@@ -19,6 +19,9 @@ TagManager:
   - PokemonDisplay
   - EvolutionCanvas
   - ItemScreen
+  - DefaultButton
+  - LoadScreen
+  - VoidText
   layers:
   - Default
   - TransparentFX

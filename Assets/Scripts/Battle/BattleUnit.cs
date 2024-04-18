@@ -76,11 +76,23 @@ public class BattleUnit : MonoBehaviour
 
         }
     }
+    public void AddTrainerImage(Sprite image)
+    {
+        trainer.sprite = image;
+    }
     public void Setup(Pokemon pokemon)
     {
         Debug.Log("[PlayerUnit] Setup called for" + pokemon.Base.Name + ", Pokémon HP: " + pokemon.HP);
         Pokemon = pokemon;
         image.sprite = Pokemon.Base.BackSprite;
+        if (isPlayerUnit)
+        {
+            image.transform.localScale = new Vector3(-1, 1, 1);
+        }
+        else
+        {
+            image.transform.localScale = Vector3.one;
+        }
         if (PokemonParty.Instance.IsWildBattle)
         {
             if (!initialAnimationPlayed)
@@ -264,7 +276,11 @@ public class BattleUnit : MonoBehaviour
     public void PlayEnterAnimation()
     {
         Debug.Log($"PlayEnterAnimation called. isPlayerUnit: {isPlayerUnit}");
-        if (!isPlayerUnit) return;
+        if (!isPlayerUnit) 
+        {
+            image.rectTransform.anchoredPosition = new Vector2(-1250, image.rectTransform.anchoredPosition.y);
+            image.DOFade(1f, 0.5f);
+        }
         if (BattleSystem.Instance.shouldSkipAnimation)
         {
             image.DOFade(1f, 0);
@@ -294,7 +310,7 @@ public class BattleUnit : MonoBehaviour
             .SetEase(Ease.Linear);
 
 
-        var moveTween = rectTransform.DOAnchorPos3D(new Vector2(-300, originalPos.y), duration).OnComplete(() =>
+        var moveTween = rectTransform.DOAnchorPos3D(new Vector2(isPlayerUnit ? -300f : -1050f, originalPos.y), duration).OnComplete(() =>
         {
 
             rotationTween.Kill();

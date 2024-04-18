@@ -112,6 +112,10 @@ public class PokemonParty : MonoBehaviour
             return pokemon.Base.Name + " was sent to someone's PC!";
         }
     }
+    public void AddPokemonToStorage(Pokemon pokemon)
+    {
+        storageSystem.Add(pokemon);
+    }
     public void AddPokemonV(Pokemon pokemon)
     {
         if (pokemons.Count < maxSize)
@@ -129,6 +133,33 @@ public class PokemonParty : MonoBehaviour
         foreach (var pokemon in pokemons)
         {
             pokemon.Heal();
+        }
+    }
+    public void RemovePokemon(Pokemon pokemon)
+    {
+        pokemons.Remove(pokemon);
+    }
+
+    public bool HasPokemon(string pokemonName)
+    {
+        foreach (var pokemon in pokemons)
+        {
+            if (pokemon.Base.Name == pokemonName)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+    public void RemovePokemonByName(string pokemonName)
+    {
+        foreach (var pokemon in pokemons)
+        {
+            if (pokemon.Base.Name == pokemonName)
+            {
+                pokemons.Remove(pokemon);
+                break;
+            }
         }
     }
 }
